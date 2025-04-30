@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  name       String   @db.VarChar(100)
+  email      String   @unique @db.VarChar(100)
+  password   String   @db.VarChar(255)
+  role       UserRole @default(USER) 
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  carts      Cart[]
+  orders     Order[]
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  name        String        @db.VarChar(255)
+  description String?
+  price       Decimal       @db.Decimal(10,2)
+  stock       Int
+  imageUrl    String        @db.VarChar(255) @map("image_url")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  sizes       ProductSize[] // Relasi ke tabel ukuran
+  carts       Cart[]
+  orderItems  OrderItem[]
+}
+
+model ProductSize {
+  id         String   @id @default(uuid())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  size       String   @db.VarChar(50) // Simpan ukuran sebagai string
+}
+
+model Cart {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  size       String   @db.VarChar(50) @default("M") // Default sementara
+  quantity   Int
+  createdAt  DateTime @default(now()) @map("created_at")
+}
+
+
+model Order {
+  id         String      @id @default(uuid())
+  user       User        @relation(fields: [userId], references: [id])
+  userId     String
+  name       String      @db.VarChar(100)
+  phone      String      @db.VarChar(15)
+  address    String
+  totalPrice Decimal     @db.Decimal(10,2) @map("total_price")
+  status     OrderStatus @default(Menunggu_Konfirmasi)
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  orderItems OrderItem[]
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  order      Order    @relation(fields: [orderId], references: [id])
+  orderId    String
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  quantity   Int
+  price      Decimal  @db.Decimal(10,2)
+}
+
+model Transaction {
+  id                String   @id @default(uuid())
+  orderId           String   @unique
+  amount            Float
+  paymentType       String
+  transactionStatus String
+  transactionId     String?
+  fraudStatus       String?
+  paymentResponse   String   @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("transactions")
+}
+
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+
+enum OrderStatus {
+  Menunggu_Konfirmasi
+  Dikonfirmasi
+  Dikirim
+  Sampai
+  Dibatalkan
+}
+
+

@@ -4,6 +4,7 @@ import routerProduct from "./productRoute.js";
 import routerCart from "./cartRoutes.js";
 import routerOrder from "./orderRoutes.js";
 import routerPayment from "./paymentRoutes.js";
+import routerShipping from "./shippingRoutes.js";
 
 const router = express.Router();
 
@@ -12,5 +13,6 @@ router.use(routerProduct);
 router.use(routerCart);
 router.use(routerOrder);
 router.use(routerPayment);
+router.use(routerShipping);
 
 export default router;

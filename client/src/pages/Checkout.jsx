@@ -8,12 +8,21 @@ import {
   getPaymentStatus,
 } from "../service/api/paymentService";
 import { toast } from "react-hot-toast";
+import { getShippingCost, getCities } from "../service/api/shippingService";
 
 function Checkout() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const [originCityId] = useState("501"); // Example: Yogyakarta as origin (should be dynamic/configurable)
+  const [destinationCityId, setDestinationCityId] = useState("");
+  const [weight, setWeight] = useState(1000); // Default weight in grams (should sum cart items)
+  const [courier, setCourier] = useState("");
+  const [shippingOptions, setShippingOptions] = useState([]);
+  const [selectedShipping, setSelectedShipping] = useState(null);
+  const [shippingCost, setShippingCost] = useState(0);
+  const [cities, setCities] = useState([]);
 
   // Inisialisasi Midtrans Snap
   useEffect(() => {
@@ -53,6 +62,62 @@ function Checkout() {
     fetchCart();
   }, [navigate]);
 
+  // Calculate total weight from cart items
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      const totalWeight = cartItems.reduce(
+        (sum, item) => sum + (item.product.weight || 1000) * item.quantity,
+        0
+      );
+      setWeight(totalWeight);
+    }
+  }, [cartItems]);
+
+  // Fetch shipping options when destinationCityId, courier, or weight changes
+  useEffect(() => {
+    const fetchShipping = async () => {
+      if (originCityId && destinationCityId && weight > 0 && courier) {
+        try {
+          const res = await getShippingCost({
+            origin: originCityId,
+            destination: destinationCityId,
+            weight,
+            courier,
+          });
+          setShippingOptions(res.services || []);
+        } catch (err) {
+          setShippingOptions([]);
+          toast.error("Gagal mendapatkan ongkir");
+        }
+      } else {
+        setShippingOptions([]);
+      }
+    };
+    fetchShipping();
+  }, [originCityId, destinationCityId, weight, courier]);
+
+  // Update shipping cost when user selects a shipping service
+  useEffect(() => {
+    if (selectedShipping && selectedShipping.cost && selectedShipping.cost[0]) {
+      setShippingCost(selectedShipping.cost[0].value);
+    } else {
+      setShippingCost(0);
+    }
+  }, [selectedShipping]);
+
+  // Fetch city list on mount
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const cityList = await getCities();
+        setCities(cityList);
+      } catch (err) {
+        toast.error("Gagal memuat daftar kota");
+      }
+    };
+    fetchCities();
+  }, []);
+
   // Menghitung total
   const total = cartItems.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
@@ -67,9 +132,16 @@ function Checkout() {
       const orderData = {
         name: formData.get("name"),
         phone: formData.get("phone"),
-        address: `${formData.get("address")}, ${formData.get(
-          "city"
-        )}, ${formData.get("postalCode")}`,
+        address: `${formData.get("address")}, ${formData.get("city")}, ${formData.get("postalCode")}`,
+        shipping: selectedShipping
+          ? {
+              service: selectedShipping.service,
+              description: selectedShipping.description,
+              cost: selectedShipping.cost[0].value,
+              etd: selectedShipping.cost[0].etd,
+              courier,
+            }
+          : null,
       };
 
       // Buat order melalui API
@@ -80,9 +152,28 @@ function Checkout() {
       }
 
       // Siapkan data untuk midtrans
+      const itemDetails = [
+        ...cartItems.map((item) => ({
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+          category: "Clothing",
+        })),
+      ];
+      if (selectedShipping) {
+        itemDetails.push({
+          id: "shipping",
+          name: `Ongkir (${selectedShipping.service})`,
+          price: selectedShipping.cost[0].value,
+          quantity: 1,
+          category: "Shipping",
+        });
+      }
+
       const midtransData = {
         order_id: orderResponse.order.id,
-        gross_amount: total,
+        gross_amount: total + shippingCost,
         customer_details: {
           first_name: orderData.name,
           phone: orderData.phone,
@@ -90,13 +181,7 @@ function Checkout() {
             address: orderData.address,
           },
         },
-        item_details: cartItems.map((item) => ({
-          id: item.product.id,
-          name: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity,
-          category: "Clothing",
-        })),
+        item_details: itemDetails,
       };
 
       // Dapatkan Snap Token
@@ -108,7 +193,7 @@ function Checkout() {
           onSuccess: async function (result) {
             toast.success("Pembayaran berhasil!");
             await clearCart();
-            navigate(`/payment/success/${orderResponse.order.id}`);
+            navigate(`/payment/status/success/${orderResponse.order.id}`);
           },
           onPending: function (result) {
             toast.success(
@@ -199,17 +284,67 @@ function Checkout() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="mb-4">
                   <label className="block text-gray-700 mb-2" htmlFor="city">
-                    Kota
+                    Kota Tujuan
                   </label>
-                  <input
-                    type="text"
+                  <select
                     id="city"
                     name="city"
                     className="w-full p-2 border rounded"
                     required
-                  />
+                    value={destinationCityId}
+                    onChange={e => setDestinationCityId(e.target.value)}
+                  >
+                    <option value="">Pilih Kota</option>
+                    {cities.map(city => (
+                      <option key={city.city_id} value={city.city_id}>
+                        {city.type} {city.city_name}, {city.province}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+                <div className="mb-4">
+                  <label className="block text-gray-700 mb-2" htmlFor="courier">
+                    Kurir
+                  </label>
+                  <select
+                    id="courier"
+                    name="courier"
+                    className="w-full p-2 border rounded"
+                    value={courier}
+                    onChange={e => setCourier(e.target.value)}
+                    required
+                  >
+                    <option value="">Pilih Kurir</option>
+                    <option value="jne">JNE</option>
+                    <option value="tiki">TIKI</option>
+                    <option value="pos">POS</option>
+                  </select>
+                </div>
+              </div>
 
+              {shippingOptions.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-gray-700 mb-2">Pilih Layanan Pengiriman</label>
+                  <select
+                    className="w-full p-2 border rounded"
+                    value={selectedShipping ? selectedShipping.service : ""}
+                    onChange={e => {
+                      const selected = shippingOptions.find(opt => opt.service === e.target.value);
+                      setSelectedShipping(selected);
+                    }}
+                    required
+                  >
+                    <option value="">Pilih Layanan</option>
+                    {shippingOptions.map(opt => (
+                      <option key={opt.service} value={opt.service}>
+                        {opt.service} - {opt.description} (Rp. {opt.cost[0].value.toLocaleString()}, Estimasi: {opt.cost[0].etd} hari)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="mb-4">
                   <label
                     className="block text-gray-700 mb-2"
@@ -263,9 +398,13 @@ function Checkout() {
             </div>
 
             <div className="border-t mt-4 pt-4">
+              <div className="flex justify-between">
+                <p>Ongkir</p>
+                <p>Rp. {shippingCost.toLocaleString()}</p>
+              </div>
               <div className="flex justify-between font-bold">
                 <p>Total</p>
-                <p>Rp. {total.toLocaleString()}</p>
+                <p>Rp. {(total + shippingCost).toLocaleString()}</p>
               </div>
             </div>
           </div>

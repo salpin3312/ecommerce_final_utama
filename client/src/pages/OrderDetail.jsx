@@ -10,14 +10,17 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { formatCurrency } from "../lib/lib";
+import { getPaymentStatus } from "../service/api/paymentService";
 
 function OrderDetail() {
   const { orderId } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [checkingPayment, setCheckingPayment] = useState(false);
 
   useEffect(() => {
     fetchOrderDetails();
+    // eslint-disable-next-line
   }, [orderId]);
 
   const fetchOrderDetails = async () => {
@@ -30,6 +33,19 @@ function OrderDetail() {
       toast.error("Gagal memuat detail pesanan");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCheckPayment = async () => {
+    setCheckingPayment(true);
+    try {
+      await getPaymentStatus(order.id); // Trigger backend untuk update status transaksi & order
+      await fetchOrderDetails(); // Refresh data order
+      toast.success("Status pembayaran diperbarui!");
+    } catch (err) {
+      toast.error("Gagal cek status pembayaran");
+    } finally {
+      setCheckingPayment(false);
     }
   };
 
@@ -53,7 +69,7 @@ function OrderDetail() {
 
   // Helper function to format status text
   const formatStatus = (status) => {
-    return status.replace(/_/g, " ");
+    return status ? status.replace(/_/g, " ") : "-";
   };
 
   // Helper function to get status icon
@@ -71,6 +87,29 @@ function OrderDetail() {
         return <AlertTriangle className="inline-block mr-2" size={18} />;
       default:
         return <Package className="inline-block mr-2" size={18} />;
+    }
+  };
+
+  // Helper function to get payment status text and color
+  const getPaymentStatus = () => {
+    if (order.transaction && order.transaction.transactionStatus) {
+      const status = order.transaction.transactionStatus;
+      if (status === "settlement" || status === "capture") {
+        return { text: "Sudah Dibayar", color: "text-success" };
+      } else if (status === "pending") {
+        return { text: "Belum Dibayar", color: "text-warning" };
+      } else if (["cancel", "deny", "expire"].includes(status)) {
+        return { text: "Dibatalkan", color: "text-error" };
+      } else {
+        return { text: status, color: "text-gray-500" };
+      }
+    } else {
+      // fallback lama
+      if (["Dikonfirmasi", "Dikirim", "Sampai"].includes(order.status)) {
+        return { text: "Sudah Dibayar", color: "text-success" };
+      } else {
+        return { text: "Belum Dibayar", color: "text-error" };
+      }
     }
   };
 
@@ -100,6 +139,13 @@ function OrderDetail() {
     );
   }
 
+  // Hitung subtotal produk
+  const subtotal =
+    (order.orderItems || []).reduce(
+      (sum, item) => sum + Number(item.price) * Number(item.quantity),
+      0
+    ) || 0;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center mb-6">
@@ -123,7 +169,9 @@ function OrderDetail() {
             <div className="mt-4 md:mt-0">
               <p className="text-sm">
                 Tanggal Pesanan:{" "}
-                {new Date(order.createdAt).toLocaleDateString()}
+                {order.createdAt
+                  ? new Date(order.createdAt).toLocaleDateString()
+                  : "-"}
               </p>
               {order.updatedAt && (
                 <p className="text-sm">
@@ -138,9 +186,7 @@ function OrderDetail() {
           {order.status !== "Dibatalkan" && (
             <div className="mt-8">
               <ul className="steps steps-vertical md:steps-horizontal w-full">
-                <li className={`step ${order.status ? "step-primary" : ""}`}>
-                  Pesanan Dibuat
-                </li>
+                <li className={`step step-primary`}>Pesanan Dibuat</li>
                 <li
                   className={`step ${
                     order.status !== "Menunggu_Konfirmasi" ? "step-primary" : ""
@@ -179,97 +225,88 @@ function OrderDetail() {
               <thead>
                 <tr>
                   <th>Produk</th>
-                  <th>Ukuran</th>
                   <th>Harga</th>
                   <th>Jumlah</th>
                   <th>Subtotal</th>
                 </tr>
               </thead>
               <tbody>
-                {order.items &&
-                  order.items.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <div className="flex items-center space-x-3">
-                          <div className="avatar">
-                            <div className="mask mask-squircle w-12 h-12">
-                              <img
-                                src={
-                                  item.product.imageUrl
-                                    ? `${
-                                        import.meta.env.VITE_API_URL?.replace(
-                                          /\/api$/,
-                                          ""
-                                        ) || "http://localhost:8000"
+                {(order.orderItems || []).map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <div className="flex items-center space-x-3">
+                        <div className="avatar">
+                          <div className="mask mask-squircle w-12 h-12">
+                            <img
+                              src={
+                                item.product?.imageUrl
+                                  ? `$
+                                      {
+                                        (import.meta.env.VITE_API_URL
+                                          ? import.meta.env.VITE_API_URL.replace(/\/api$/, "")
+                                          : "http://localhost:8000"
+                                        )
                                       }${item.product.imageUrl}`
-                                    : "https://placehold.co/300x400"
-                                }
-                                alt={item.product.name}
-                                onError={(e) => {
-                                  e.target.src = `https://placehold.co/300x400?text=${item.product.name.charAt(
-                                    0
-                                  )}`;
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <div className="font-bold">{item.product.name}</div>
+                                  : "https://placehold.co/300x400"
+                              }
+                              alt={item.product?.name || "Produk"}
+                              onError={(e) => {
+                                e.target.src = `https://placehold.co/300x400?text=${item.product?.name?.charAt(
+                                  0
+                                )}`;
+                              }}
+                            />
                           </div>
                         </div>
-                      </td>
-                      <td>{item.size || "Standard"}</td>
-                      <td>{formatCurrency(item.product.price)}</td>
-                      <td>{item.quantity}</td>
-                      <td>
-                        {formatCurrency(item.product.price * item.quantity)}
-                      </td>
-                    </tr>
-                  ))}
+                        <div>
+                          <div className="font-bold">
+                            {item.product?.name || "-"}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{formatCurrency(item.price)}</td>
+                    <td>{item.quantity}</td>
+                    <td>{formatCurrency(Number(item.price) * Number(item.quantity))}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      {/* Shipping Information */}
+      {/* Shipping & Payment Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h3 className="text-xl font-bold mb-4">Informasi Pengiriman</h3>
             <div className="space-y-2">
               <p>
-                <span className="font-semibold">Nama:</span>{" "}
-                {order.name || order.user?.name}
+                <span className="font-semibold">Nama:</span> {order.name}
               </p>
               <p>
                 <span className="font-semibold">Email:</span>{" "}
-                {order.email || order.user?.email}
+                {order.user?.email || "-"}
               </p>
               <p>
-                <span className="font-semibold">Telepon:</span>{" "}
-                {order.phone || "-"}
+                <span className="font-semibold">Telepon:</span> {order.phone}
               </p>
               <p>
                 <span className="font-semibold">Alamat:</span> {order.address}
               </p>
-              {order.city && (
-                <p>
-                  <span className="font-semibold">Kota:</span> {order.city}
-                </p>
-              )}
-              {order.postalCode && (
-                <p>
-                  <span className="font-semibold">Kode Pos:</span>{" "}
-                  {order.postalCode}
-                </p>
-              )}
-              {order.trackingNumber && (
-                <p>
-                  <span className="font-semibold">Nomor Tracking:</span>{" "}
-                  {order.trackingNumber}
-                </p>
-              )}
+              <p>
+                <span className="font-semibold">Kurir:</span>{" "}
+                {order.courier?.toUpperCase() || "-"}
+              </p>
+              <p>
+                <span className="font-semibold">Layanan:</span>{" "}
+                {order.shippingService || "-"}
+              </p>
+              <p>
+                <span className="font-semibold">Estimasi:</span>{" "}
+                {order.etd || "-"}
+              </p>
             </div>
           </div>
         </div>
@@ -281,9 +318,7 @@ function OrderDetail() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span>Subtotal Produk:</span>
-                <span>
-                  {formatCurrency(order.totalPrice - (order.shippingCost || 0))}
-                </span>
+                <span>{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Biaya Pengiriman:</span>
@@ -293,26 +328,23 @@ function OrderDetail() {
                     : "Gratis"}
                 </span>
               </div>
-              {order.discount > 0 && (
-                <div className="flex justify-between text-success">
-                  <span>Diskon:</span>
-                  <span>-{formatCurrency(order.discount)}</span>
-                </div>
-              )}
               <div className="divider my-1"></div>
               <div className="flex justify-between font-bold text-lg">
                 <span>Total:</span>
                 <span>{formatCurrency(order.totalPrice)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Metode Pembayaran:</span>
-                <span>{order.paymentMethod || "Transfer Bank"}</span>
-              </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span>Status Pembayaran:</span>
-                <span className={order.isPaid ? "text-success" : "text-error"}>
-                  {order.isPaid ? "Dibayar" : "Belum Dibayar"}
+                <span className={getPaymentStatus().color}>
+                  {getPaymentStatus().text}
                 </span>
+                <button
+                  className="btn btn-xs btn-outline ml-2"
+                  onClick={handleCheckPayment}
+                  disabled={checkingPayment}
+                >
+                  {checkingPayment ? "Mengecek..." : "Cek Status Pembayaran"}
+                </button>
               </div>
             </div>
           </div>
@@ -320,14 +352,12 @@ function OrderDetail() {
       </div>
 
       {/* Action Buttons */}
-      <div className="mt-8 flex justify-end">
+      <div className="mt-8 flex justify-end gap-2">
         {order.status === "Menunggu_Konfirmasi" && (
-          <button className="btn btn-error mr-4">Batalkan Pesanan</button>
+          <button className="btn btn-error">Batalkan Pesanan</button>
         )}
         {order.status === "Dikirim" && (
-          <button className="btn btn-success mr-4">
-            Konfirmasi Penerimaan
-          </button>
+          <button className="btn btn-success">Konfirmasi Penerimaan</button>
         )}
         {order.status === "Sampai" && (
           <Link to={`/review/${orderId}`} className="btn btn-primary">

@@ -116,7 +116,7 @@ function AppRoutes() {
             <Route path="/product/detail/:id" element={<ProductDetail />} />
             <Route path="/orders/:orderId" element={<OrderDetail />} />
             <Route
-              path="/payment/:status/:orderId"
+              path="/payment/status/:status/:orderId"
               element={<PaymentStatus />}
             />
             <Route path="/profile" element={<div>Profile Page</div>} />

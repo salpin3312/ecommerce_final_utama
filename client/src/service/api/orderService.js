@@ -24,11 +24,12 @@ export const getOrderById = async (id) => {
 // Membuat order baru dari cart
 export const createOrder = async (orderData) => {
   try {
-    const { name, phone, address } = orderData;
+    const { name, phone, address, shipping } = orderData;
     const response = await axiosInstance.post("/api/orders", {
       name,
       phone,
       address,
+      shipping,
     });
     return response.data;
   } catch (error) {

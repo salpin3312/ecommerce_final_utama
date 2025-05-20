@@ -52,6 +52,7 @@ export const getOrderById = async (req, res) => {
             product: true,
           },
         },
+        transaction: true,
       },
     });
 
@@ -77,7 +78,7 @@ export const getOrderById = async (req, res) => {
 // Membuat order baru dari cart
 export const createOrder = async (req, res) => {
   try {
-    const { name, phone, address } = req.body;
+    const { name, phone, address, shipping } = req.body;
     const userId = req.user.id; // Asumsikan user ID didapat dari middleware auth
 
     if (!name || !phone || !address) {
@@ -116,6 +117,10 @@ export const createOrder = async (req, res) => {
     for (const item of cartItems) {
       totalPrice = totalPrice.plus(item.product.price.mul(item.quantity));
     }
+    // Tambahkan ongkir jika ada
+    if (shipping && shipping.cost) {
+      totalPrice = totalPrice.plus(new Decimal(shipping.cost));
+    }
 
     // Gunakan transaksi untuk memastikan semua operasi berhasil
     const order = await prisma.$transaction(async (prisma) => {
@@ -128,13 +133,15 @@ export const createOrder = async (req, res) => {
           address: address,
           totalPrice: totalPrice,
           status: "Menunggu_Konfirmasi",
+          shippingService: shipping?.service || null,
+          shippingCost: shipping?.cost || null,
+          courier: shipping?.courier || null,
+          etd: shipping?.etd || null,
           orderItems: {
             create: cartItems.map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
               price: item.product.price,
-              // Ukuran produk tidak disimpan di OrderItem, hanya di Cart
-              // Model OrderItem perlu diperbarui jika ingin menyimpan ukuran
             })),
           },
         },

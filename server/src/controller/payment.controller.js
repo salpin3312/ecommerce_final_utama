@@ -88,18 +88,18 @@ export const handleNotification = async (req, res) => {
     });
 
     // Update status order berdasarkan status transaksi
-    let orderStatus = "pending";
+    let orderStatus = "Menunggu_Konfirmasi";
 
     if (transactionStatus === "capture" || transactionStatus === "settlement") {
-      orderStatus = "paid";
+      orderStatus = "Dikonfirmasi";
     } else if (
       transactionStatus === "deny" ||
       transactionStatus === "cancel" ||
       transactionStatus === "expire"
     ) {
-      orderStatus = "cancelled";
+      orderStatus = "Dibatalkan";
     } else if (transactionStatus === "pending") {
-      orderStatus = "pending";
+      orderStatus = "Menunggu_Konfirmasi";
     }
 
     await prisma.order.update({
@@ -143,6 +143,15 @@ export const createSnapToken = async (req, res) => {
   try {
     const { order_id, gross_amount, customer_details, item_details } = req.body;
 
+    // Validate gross_amount matches sum of item_details
+    const sumItems = item_details.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+    if (Number(gross_amount) !== sumItems) {
+      return res.status(400).json({
+        status: false,
+        message: `gross_amount (${gross_amount}) is not equal to the sum of item_details (${sumItems})`,
+      });
+    }
+
     const parameter = {
       transaction_details: {
         order_id,
@@ -150,6 +159,11 @@ export const createSnapToken = async (req, res) => {
       },
       customer_details,
       item_details,
+      callbacks: {
+        finish: `${process.env.FRONTEND_URL}/payment/status/success/${order_id}`,
+        unfinish: `${process.env.FRONTEND_URL}/payment/status/pending/${order_id}`,
+        error: `${process.env.FRONTEND_URL}/payment/status/failed/${order_id}`,
+      },
     };
 
     const token = await snap.createTransaction(parameter);

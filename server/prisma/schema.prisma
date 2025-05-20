@@ -70,7 +70,13 @@ model Order {
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
+  shippingService String?  // e.g. "REG"
+  shippingCost    Decimal? @db.Decimal(10,2)
+  courier         String?  // e.g. "jne"
+  etd             String?  // e.g. "2-3"
+
   orderItems OrderItem[]
+  transaction Transaction? @relation("OrderTransaction")
 }
 
 model OrderItem {
@@ -94,6 +100,8 @@ model Transaction {
   paymentResponse   String   @db.Text
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  order     Order    @relation("OrderTransaction", fields: [orderId], references: [id])
 
   @@map("transactions")
 }

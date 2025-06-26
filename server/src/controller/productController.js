@@ -79,7 +79,23 @@ export const addProduct = async (req, res) => {
 // Fungsi untuk mendapatkan semua produk
 export const getAllProducts = async (req, res) => {
   try {
+    const { status, includeArchived } = req.query;
+
+    // Filter berdasarkan status
+    let whereClause = {};
+
+    if (status) {
+      // Filter berdasarkan status spesifik
+      whereClause.status = status;
+    } else if (includeArchived !== "true") {
+      // Default: Jangan tampilkan produk yang diarsipkan kecuali diminta
+      whereClause.status = {
+        not: "ARCHIVED",
+      };
+    }
+
     const products = await prisma.product.findMany({
+      where: whereClause,
       include: {
         sizes: true, // Include product sizes
       },
@@ -261,6 +277,7 @@ export const updateProduct = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
+    const { forceDelete } = req.query; // Parameter opsional untuk admin
 
     // Cek produk yang akan dihapus
     const product = await prisma.product.findUnique({
@@ -271,12 +288,64 @@ export const deleteProduct = async (req, res) => {
       return res.status(404).json({ message: "Produk tidak ditemukan" });
     }
 
+    // Cek apakah produk memiliki relasi dengan Cart
+    const cartItems = await prisma.cart.findMany({
+      where: { productId: id },
+      include: { user: true }, // Include user untuk notifikasi (implementasi future)
+    });
+
+    // Cek apakah produk memiliki relasi dengan OrderItem
+    const orderItems = await prisma.orderItem.findMany({
+      where: { productId: id },
+    });
+
+    const hasReferences = cartItems.length > 0 || orderItems.length > 0;
+
+    // Jika ada referensi dan bukan force delete, lakukan soft delete (ubah status)
+    if (hasReferences && forceDelete !== "true") {
+      const updatedProduct = await prisma.product.update({
+        where: { id: id },
+        data: {
+          status: "ARCHIVED",
+          deletedAt: new Date(),
+        },
+      });
+
+      // Di sini bisa ditambahkan kode untuk notifikasi ke pengguna yang memiliki produk di keranjang
+      // Contoh: kirim email atau notifikasi in-app
+
+      return res.status(200).json({
+        message: "Produk telah diarsipkan karena masih digunakan dalam sistem",
+        status: updatedProduct.status,
+        references: {
+          carts: cartItems.length,
+          orders: orderItems.length,
+        },
+      });
+    }
+
+    // Jika force delete atau tidak ada referensi
+    if (forceDelete === "true" && hasReferences) {
+      // Hapus referensi di Cart jika ada
+      if (cartItems.length > 0) {
+        await prisma.cart.deleteMany({
+          where: { productId: id },
+        });
+      }
+
+      // Untuk OrderItem, kita tidak hapus tapi bisa tambahkan catatan bahwa produk sudah dihapus
+      // Ini penting untuk menjaga integritas data pesanan
+    }
+
     // Hapus gambar terkait jika ada
     if (product.imageUrl) {
       try {
         const imagePath = getImagePath(product.imageUrl);
         if (imagePath) {
-          await fs.unlink(imagePath);
+          await fs.access(imagePath).then(
+            () => fs.unlink(imagePath),
+            () => console.log(`File tidak ditemukan: ${imagePath}`)
+          );
         }
       } catch (err) {
         console.error("Gagal menghapus gambar produk:", err);
@@ -284,14 +353,52 @@ export const deleteProduct = async (req, res) => {
       }
     }
 
-    // Hapus produk dari database (cascade delete akan otomatis menghapus ProductSize terkait)
-    await prisma.product.delete({
-      where: { id: id },
+    // Hapus ukuran produk terlebih dahulu
+    await prisma.productSize.deleteMany({
+      where: { productId: id },
     });
 
-    res.status(200).json({ message: "Produk berhasil dihapus" });
+    // Hard delete produk jika force delete atau tidak ada referensi
+    // Soft delete (update status) jika ada referensi di OrderItem
+    if (forceDelete === "true" || !hasReferences) {
+      await prisma.product.delete({
+        where: { id: id },
+      });
+
+      return res.status(200).json({
+        message:
+          forceDelete === "true"
+            ? "Produk dan referensinya di keranjang berhasil dihapus"
+            : "Produk berhasil dihapus",
+      });
+    } else {
+      // Jika kita sampai di sini, berarti ada referensi di OrderItem yang tidak bisa dihapus
+      const updatedProduct = await prisma.product.update({
+        where: { id: id },
+        data: {
+          status: "DISCONTINUED",
+          deletedAt: new Date(),
+        },
+      });
+
+      return res.status(200).json({
+        message:
+          "Produk telah dinonaktifkan karena masih terdapat dalam pesanan",
+        status: updatedProduct.status,
+      });
+    }
   } catch (error) {
     console.error("Error saat menghapus produk:", error);
+
+    // Memberikan pesan error yang lebih spesifik
+    if (error.code === "P2003") {
+      return res.status(400).json({
+        message:
+          "Produk tidak dapat dihapus karena masih digunakan di data lain",
+        error: "Foreign key constraint violation",
+      });
+    }
+
     res
       .status(500)
       .json({ message: "Terjadi kesalahan pada server", error: error.message });
@@ -334,6 +441,67 @@ export const searchProducts = async (req, res) => {
     });
   } catch (error) {
     console.error("Error saat mencari produk:", error);
+    res
+      .status(500)
+      .json({ message: "Terjadi kesalahan pada server", error: error.message });
+  }
+};
+
+// Fungsi untuk mengubah status produk
+export const updateProductStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validasi status
+    const validStatuses = [
+      "DRAFT",
+      "ACTIVE",
+      "OUT_OF_STOCK",
+      "DISCONTINUED",
+      "ARCHIVED",
+    ];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        message: "Status tidak valid",
+        validStatuses,
+      });
+    }
+
+    // Cek produk yang akan diupdate
+    const product = await prisma.product.findUnique({
+      where: { id: id },
+    });
+
+    if (!product) {
+      return res.status(404).json({ message: "Produk tidak ditemukan" });
+    }
+
+    // Update status produk
+    const updatedProduct = await prisma.product.update({
+      where: { id: id },
+      data: {
+        status,
+        // Jika status ARCHIVED, set deletedAt
+        deletedAt: status === "ARCHIVED" ? new Date() : null,
+      },
+      include: {
+        sizes: true,
+      },
+    });
+
+    // Format response untuk memudahkan konsumsi di frontend
+    const formattedProduct = {
+      ...updatedProduct,
+      sizes: updatedProduct.sizes.map((size) => size.size),
+    };
+
+    res.status(200).json({
+      message: `Status produk berhasil diubah menjadi ${status}`,
+      product: formattedProduct,
+    });
+  } catch (error) {
+    console.error("Error saat mengubah status produk:", error);
     res
       .status(500)
       .json({ message: "Terjadi kesalahan pada server", error: error.message });

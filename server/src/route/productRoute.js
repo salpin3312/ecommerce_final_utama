@@ -6,6 +6,7 @@ import {
   updateProduct,
   deleteProduct,
   searchProducts,
+  updateProductStatus,
 } from "../controller/productController.js";
 import upload from "../middleware/multerMiddleware.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
@@ -25,6 +26,18 @@ const routerProduct = express.Router();
  *   get:
  *     summary: Get all products
  *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [DRAFT, ACTIVE, OUT_OF_STOCK, DISCONTINUED, ARCHIVED]
+ *         description: Filter by product status
+ *       - in: query
+ *         name: includeArchived
+ *         schema:
+ *           type: boolean
+ *         description: Whether to include archived products
  *     responses:
  *       200:
  *         description: List of products
@@ -154,6 +167,47 @@ routerProduct.put(
 
 /**
  * @swagger
+ * /products/{id}/status:
+ *   patch:
+ *     summary: Update product status
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [DRAFT, ACTIVE, OUT_OF_STOCK, DISCONTINUED, ARCHIVED]
+ *     responses:
+ *       200:
+ *         description: Product status updated
+ *       400:
+ *         description: Invalid status
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Product not found
+ */
+routerProduct.patch(
+  "/products/:id/status",
+  authMiddleware,
+  updateProductStatus
+);
+
+/**
+ * @swagger
  * /products/{id}:
  *   delete:
  *     summary: Delete a product
@@ -165,9 +219,14 @@ routerProduct.put(
  *         schema:
  *           type: string
  *         description: Product ID
+ *       - in: query
+ *         name: forceDelete
+ *         schema:
+ *           type: boolean
+ *         description: Whether to force delete the product and its references
  *     responses:
  *       200:
- *         description: Product deleted
+ *         description: Product deleted or archived
  *       401:
  *         description: Unauthorized
  *       404:

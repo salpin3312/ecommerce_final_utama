@@ -14,7 +14,7 @@ dotenv.config();
 const corsOptions = {
   origin: "http://localhost:5173", // Ganti dengan origin frontend
   credentials: true, // Izinkan kredensial
-  methods: ["GET", "POST", "PUT", "DELETE"], // Izinkan method yang diperlukan
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Izinkan method yang diperlukan
 };
 
 app.use(cors(corsOptions));
@@ -30,15 +30,12 @@ const swaggerOptions = {
     info: {
       title: "E-Commerce API",
       version: "1.0.0",
-      description: "API documentation for the e-commerce backend, including shipping cost (ongkir) endpoints.",
+      description:
+        "API documentation for the e-commerce backend, including shipping cost (ongkir) endpoints.",
     },
-    servers: [
-      { url: "http://localhost:" + process.env.PORT + "/api" },
-    ],
+    servers: [{ url: "http://localhost:" + process.env.PORT + "/api" }],
   },
-  apis: [
-    "./src/route/*.js",
-  ],
+  apis: ["./src/route/*.js"],
 };
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 

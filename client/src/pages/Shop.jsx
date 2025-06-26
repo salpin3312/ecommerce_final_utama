@@ -12,7 +12,8 @@ function Shop() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const data = await getAllProducts();
+        // Hanya ambil produk dengan status ACTIVE
+        const data = await getAllProducts({ status: "ACTIVE" });
         setProducts(data);
       } catch (error) {
         setError("Failed to fetch products");
@@ -23,6 +24,27 @@ function Shop() {
 
     fetchProducts();
   }, []);
+
+  // Handle search
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchTerm.trim()) return;
+
+    try {
+      setLoading(true);
+      const result = await searchProducts(searchTerm);
+      // Filter hasil pencarian untuk hanya menampilkan produk ACTIVE
+      const activeProducts = result.products.filter(
+        (product) => product.status === "ACTIVE"
+      );
+      setProducts(activeProducts);
+    } catch (error) {
+      toast.error("Error searching products");
+      setError("Failed to search products");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -37,7 +59,7 @@ function Shop() {
       <h2 className="text-3xl font-bold mb-8">T-Shirt Kami</h2>
 
       {/* Search form */}
-      <form className="mb-8 flex gap-2">
+      <form className="mb-8 flex gap-2" onSubmit={handleSearch}>
         <input
           type="text"
           placeholder="Search products..."

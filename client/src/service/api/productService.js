@@ -2,9 +2,22 @@
 import axiosInstance from "../axiosService";
 
 // Mendapatkan semua produk
-export const getAllProducts = async () => {
+export const getAllProducts = async (filters = {}) => {
   try {
-    const response = await axiosInstance.get("/api/products");
+    const { status, includeArchived } = filters;
+    let url = "/api/products";
+
+    // Tambahkan query parameters jika ada
+    const params = new URLSearchParams();
+    if (status) params.append("status", status);
+    if (includeArchived) params.append("includeArchived", includeArchived);
+
+    // Tambahkan query string ke URL jika ada parameter
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await axiosInstance.get(url);
     return response.data.products;
   } catch (error) {
     throw error;
@@ -108,10 +121,27 @@ export const updateProduct = async (id, productData) => {
   }
 };
 
-// Menghapus produk
-export const deleteProduct = async (id) => {
+// Mengubah status produk
+export const updateProductStatus = async (id, status) => {
   try {
-    const response = await axiosInstance.delete(`/api/products/${id}`);
+    const response = await axiosInstance.patch(`/api/products/${id}/status`, {
+      status,
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Menghapus produk
+export const deleteProduct = async (id, forceDelete = false) => {
+  try {
+    let url = `/api/products/${id}`;
+    if (forceDelete) {
+      url += `?forceDelete=true`;
+    }
+
+    const response = await axiosInstance.delete(url);
     return response.data;
   } catch (error) {
     throw error;

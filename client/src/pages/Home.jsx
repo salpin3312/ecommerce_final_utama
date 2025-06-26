@@ -13,11 +13,9 @@ function Home() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        // Hanya ambil produk dengan status ACTIVE
-        const data = await getAllProducts({ status: "ACTIVE" });
-        // Ambil 4 produk teratas untuk ditampilkan sebagai produk unggulan
-        const featuredProducts = data.slice(0, 4);
-        setProducts(featuredProducts);
+        const data = await getAllProducts();
+        console.log(data);
+        setProducts(data);
       } catch (error) {
         setError("Gagal mengambil produk");
       } finally {
@@ -37,7 +35,7 @@ function Home() {
             <HomeLottie />
           </div>
           <div>
-            <h1 className="text-5xl font-bold">Selamat Datang di Scramble</h1>
+            <h1 className="text-5xl font-bold">Selamat Datang di Screamble</h1>
             <p className="py-6">
               Temukan koleksi kaos unik dan nyaman kami. Ekspresikan diri Anda
               dengan desain kami!
@@ -92,8 +90,6 @@ function Home() {
             <p className="text-center">Memuat produk...</p>
           ) : error ? (
             <p className="text-center text-red-500">{error}</p>
-          ) : products.length === 0 ? (
-            <p className="text-center">Tidak ada produk unggulan saat ini</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {products.map((product) => (
@@ -101,11 +97,6 @@ function Home() {
               ))}
             </div>
           )}
-          <div className="text-center mt-8">
-            <Link to="/shop" className="btn btn-primary">
-              Lihat Semua Produk
-            </Link>
-          </div>
         </div>
       </div>
 

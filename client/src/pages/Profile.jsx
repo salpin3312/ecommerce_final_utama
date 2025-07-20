@@ -34,6 +34,7 @@ function Profile() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Untuk memaksa re-render
 
   const [formData, setFormData] = useState({
     name: "",
@@ -87,7 +88,22 @@ function Profile() {
       }
     };
     fetchProfile();
-  }, [setAuthState]);
+  }, [setAuthState, refreshKey]); // Tambahkan refreshKey ke dependency
+
+  // Effect untuk memantau perubahan user data
+  useEffect(() => {
+    if (user) {
+      console.log("User data changed:", user);
+      // Update form data ketika user data berubah
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        address: user.address || "",
+        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split("T")[0] : "",
+      });
+    }
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -111,10 +127,11 @@ function Profile() {
       const response = await updateUserProfile(formData);
       console.log("Update response:", response);
 
-      // Fetch ulang profile setelah update
-      const userData = await getUserProfile();
-      console.log("Refetched user data:", userData);
+      // Gunakan data dari response update langsung
+      const userData = response.user;
+      console.log("Updated user data:", userData);
 
+      // Update auth state dengan data terbaru
       setAuthState((prev) => ({
         ...prev,
         user: userData,
@@ -133,6 +150,9 @@ function Profile() {
 
       setIsEditing(false);
       toast.success(response.message || "Profile berhasil diperbarui!");
+
+      // Force re-render dengan refreshKey
+      setRefreshKey((prev) => prev + 1);
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error(
@@ -247,7 +267,10 @@ function Profile() {
   console.log("Current form data:", formData);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-gray-50 to-zinc-100">
+    <div
+      className="min-h-screen bg-gradient-to-br from-zinc-50 via-gray-50 to-zinc-100"
+      key={refreshKey}
+    >
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">

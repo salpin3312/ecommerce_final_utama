@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { FaFileDownload, FaBox, FaClipboardList, FaUsers, FaChartBar } from "react-icons/fa";
 import { getAllOrders } from "../../service/api/orderService";
 import { formatCurrency, formatCompactCurrency } from "../../lib/lib";
+<<<<<<< HEAD
+=======
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
+>>>>>>> dd32d762123bf1a02e5b2a71ddc4721519fa398a
 import * as XLSX from "xlsx";
 import { SummaryCard } from "../../components/SummaryCard";
 import { DateRangeFilter } from "../../components/DateRangeFilter";
@@ -211,6 +216,7 @@ function Reports() {
          formatCurrency(day.orders > 0 ? day.revenue / day.orders : 0),
       ]);
 
+<<<<<<< HEAD
       autoTable(doc, {
          startY: 90,
          head: [tableColumn],
@@ -218,6 +224,205 @@ function Reports() {
          headStyles: { fillColor: [41, 128, 185], textColor: 255 },
          alternateRowStyles: { fillColor: [240, 240, 240] },
       });
+=======
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching report data:", error);
+      setError("Failed to load report data. Please try again later.");
+      setLoading(false);
+    }
+  }, [dateRange]);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData]);
+
+  const handleDateChange = (e) => {
+    setDateRange({ ...dateRange, [e.target.name]: e.target.value });
+  };
+
+  const handleApplyFilter = () => {
+    fetchReportData();
+  };
+
+  const handleExport = (format) => {
+    if (salesData.length === 0) {
+      alert("No data available to export");
+      return;
+    }
+
+    try {
+      switch (format) {
+        case "pdf":
+          exportToPDF();
+          break;
+        case "excel":
+          exportToExcel();
+          break;
+        case "csv":
+          exportToCSV();
+          break;
+        default:
+          console.error("Unsupported export format");
+      }
+    } catch (error) {
+      console.error(`Error exporting to ${format}:`, error);
+      alert(`Failed to export as ${format}. Please try again.`);
+    }
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Sales Report", 105, 15, { align: "center" });
+
+    if (dateRange.startDate && dateRange.endDate) {
+      doc.setFontSize(12);
+      doc.text(
+        `Period: ${dateRange.startDate} to ${dateRange.endDate}`,
+        105,
+        25,
+        { align: "center" }
+      );
+    }
+
+    doc.setFontSize(14);
+    doc.text("Summary", 14, 40);
+
+    doc.setFontSize(10);
+    summaryCards.forEach((card, index) => {
+      doc.text(`${card.title}: ${card.value}`, 14, 50 + index * 7);
+    });
+
+    doc.setFontSize(14);
+    doc.text("Sales Data", 14, 85);
+
+    const tableColumn = [
+      "Date",
+      "Revenue",
+      "Orders",
+      "Items Sold",
+      "Avg. Order Value",
+    ];
+    const tableRows = salesData.map((day) => [
+      day.date,
+      formatCurrency(day.revenue),
+      day.orders,
+      day.items,
+      formatCurrency(day.orders > 0 ? day.revenue / day.orders : 0),
+    ]);
+
+    autoTable(doc, {
+      startY: 90,
+      head: [tableColumn],
+      body: tableRows,
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      alternateRowStyles: { fillColor: [240, 240, 240] },
+    });
+
+    const fileName =
+      dateRange.startDate && dateRange.endDate
+        ? `sales_report_${dateRange.startDate}_to_${dateRange.endDate}.pdf`
+        : "sales_report.pdf";
+
+    doc.save(fileName);
+  };
+
+  const exportToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    wb.Props = {
+      Title: "Sales Report",
+      Subject: "Sales Data",
+      Author: "System",
+      CreatedDate: new Date(),
+    };
+
+    const summaryData = [
+      ["Sales Report Summary"],
+      dateRange.startDate && dateRange.endDate
+        ? [`Date Range: ${dateRange.startDate} to ${dateRange.endDate}`]
+        : ["All Time Data"],
+      [""],
+      ["Metric", "Value"],
+      ...summaryCards.map((card) => [card.title, card.value]),
+    ];
+
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+    const summaryColWidth = [{ wch: 20 }, { wch: 15 }];
+    summaryWs["!cols"] = summaryColWidth;
+    XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+
+    const salesHeaders = [
+      "Date",
+      "Revenue",
+      "Orders",
+      "Items Sold",
+      "Avg. Order Value",
+    ];
+    const salesRows = salesData.map((day) => [
+      day.date,
+      day.revenue,
+      day.orders,
+      day.items,
+      day.orders > 0 ? day.revenue / day.orders : 0,
+    ]);
+
+    const salesWs = XLSX.utils.aoa_to_sheet([salesHeaders, ...salesRows]);
+    const salesColWidth = [
+      { wch: 12 }, // Date
+      { wch: 15 }, // Revenue
+      { wch: 10 }, // Orders
+      { wch: 10 }, // Items Sold
+      { wch: 15 }, // Avg Order Value
+    ];
+    salesWs["!cols"] = salesColWidth;
+    XLSX.utils.book_append_sheet(wb, salesWs, "Sales Data");
+
+    const fileName =
+      dateRange.startDate && dateRange.endDate
+        ? `sales_report_${dateRange.startDate}_to_${dateRange.endDate}.xlsx`
+        : "sales_report.xlsx";
+
+    XLSX.writeFile(wb, fileName);
+  };
+
+  const exportToCSV = () => {
+    const salesHeaders = [
+      '"Date"',
+      '"Revenue"',
+      '"Orders"',
+      '"Items Sold"',
+      '"Avg. Order Value"',
+    ];
+    const salesRows = salesData.map((day) => [
+      `"${day.date}"`,
+      `"${formatCurrency(day.revenue)}"`,
+      `"${day.orders}"`,
+      `"${day.items}"`,
+      `"${formatCurrency(day.orders > 0 ? day.revenue / day.orders : 0)}"`,
+    ]);
+
+    const title = ['"Sales Report"'];
+    const dateInfo =
+      dateRange.startDate && dateRange.endDate
+        ? [`"Period: ${dateRange.startDate} to ${dateRange.endDate}"`]
+        : ['"All Time Data"'];
+    const emptyRow = ['""', '""', '""', '""', '""'];
+
+    const csvContent = [
+      title.join(","),
+      dateInfo.join(","),
+      emptyRow.join(","),
+      salesHeaders.join(","),
+      ...salesRows.map((row) => row.join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+>>>>>>> dd32d762123bf1a02e5b2a71ddc4721519fa398a
 
       const fileName =
          dateRange.startDate && dateRange.endDate

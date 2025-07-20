@@ -9,7 +9,7 @@ import {
 import { getAllOrders } from "../../service/api/orderService";
 import { formatCurrency, formatCompactCurrency } from "../../lib/lib";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import { autoTable } from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { SummaryCard } from "../../components/SummaryCard";
 import { DateRangeFilter } from "../../components/DateRangeFilter";
@@ -237,7 +237,7 @@ function Reports() {
       formatCurrency(day.orders > 0 ? day.revenue / day.orders : 0),
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: 90,
       head: [tableColumn],
       body: tableRows,

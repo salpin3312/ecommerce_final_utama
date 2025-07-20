@@ -1,130 +1,75 @@
 // PaymentStatus.jsx
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { getPaymentStatus } from "../service/api/paymentService";
-import { getOrderById } from "../service/api/orderService";
+import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { CheckCircle, AlertTriangle, Clock } from "lucide-react";
 
 function PaymentStatus() {
-  const { status, orderId } = useParams();
-  const [order, setOrder] = useState(null);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Dapatkan status pembayaran terbaru dari Midtrans
-        await getPaymentStatus(orderId);
+    const orderId = searchParams.get("order_id");
+    const statusCode = searchParams.get("status_code");
+    const transactionStatus = searchParams.get("transaction_status");
 
-        // Ambil data order yang sudah diupdate
-        const orderData = await getOrderById(orderId);
-        setOrder(orderData.order);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Gagal memuat data pembayaran");
-      } finally {
-        setLoading(false);
-      }
-    };
+    console.log("Payment Status:", { orderId, statusCode, transactionStatus });
 
-    fetchData();
-  }, [orderId]);
+    if (!orderId) {
+      toast.error("Order ID tidak ditemukan");
+      navigate("/");
+      return;
+    }
+
+    // Handle different payment statuses
+    if (statusCode === "200" && transactionStatus === "settlement") {
+      toast.success("Pembayaran berhasil!");
+      // Clear cart and redirect to success page
+      setTimeout(() => {
+        navigate(`/payment/success/${orderId}`);
+      }, 2000);
+    } else if (transactionStatus === "pending") {
+      toast.info(
+        "Pembayaran dalam proses. Silakan selesaikan pembayaran Anda."
+      );
+      setTimeout(() => {
+        navigate(`/payment/pending/${orderId}`);
+      }, 2000);
+    } else if (
+      transactionStatus === "deny" ||
+      transactionStatus === "cancel" ||
+      transactionStatus === "expire"
+    ) {
+      toast.error("Pembayaran gagal atau dibatalkan.");
+      setTimeout(() => {
+        navigate(`/payment/failed/${orderId}`);
+      }, 2000);
+    } else {
+      toast.error("Status pembayaran tidak diketahui.");
+      setTimeout(() => {
+        navigate(`/payment/failed/${orderId}`);
+      }, 2000);
+    }
+
+    setLoading(false);
+  }, [searchParams, navigate]);
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="flex justify-center items-center h-64">
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
           <div className="loading loading-spinner loading-lg"></div>
+          <p className="mt-4">Memproses status pembayaran...</p>
         </div>
       </div>
     );
   }
-
-  if (!order) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="bg-white p-6 rounded-lg shadow-md text-center">
-          <AlertTriangle className="mx-auto h-16 w-16 text-yellow-500 mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Pesanan Tidak Ditemukan</h1>
-          <p className="mb-4">
-            Maaf, kami tidak dapat menemukan pesanan dengan ID tersebut.
-          </p>
-          <Link to="/orders" className="btn btn-primary">
-            Lihat Semua Pesanan
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const renderStatusContent = () => {
-    switch (status) {
-      case "success":
-        return (
-          <>
-            <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Pembayaran Berhasil!</h1>
-            <p className="mb-4">
-              Terima kasih atas pesanan Anda. Pembayaran telah berhasil
-              diproses.
-            </p>
-          </>
-        );
-      case "pending":
-        return (
-          <>
-            <Clock className="mx-auto h-16 w-16 text-yellow-500 mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Pembayaran Dalam Proses</h1>
-            <p className="mb-4">
-              Pembayaran Anda sedang diproses. Silakan selesaikan pembayaran
-              sesuai instruksi.
-            </p>
-          </>
-        );
-      case "failed":
-        return (
-          <>
-            <AlertTriangle className="mx-auto h-16 w-16 text-red-500 mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Pembayaran Gagal</h1>
-            <p className="mb-4">
-              Maaf, pembayaran Anda tidak dapat diproses. Silakan coba lagi.
-            </p>
-          </>
-        );
-      default:
-        return (
-          <>
-            <AlertTriangle className="mx-auto h-16 w-16 text-yellow-500 mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Status Pembayaran</h1>
-            <p className="mb-4">
-              Berikut adalah status pembayaran untuk pesanan Anda.
-            </p>
-          </>
-        );
-    }
-  };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="bg-white p-6 rounded-lg shadow-md text-center">
-        {renderStatusContent()}
-
-        <div className="bg-gray-100 p-4 rounded-lg mb-4">
-          <p className="font-medium">ID Pesanan: {order.id}</p>
-          <p>Total: Rp. {order.total?.toLocaleString() || "0"}</p>
-          <p>Status Pembayaran: {order.paymentStatus || "Belum dibayar"}</p>
-        </div>
-
-        <div className="flex justify-center gap-4">
-          <Link to={`/orders/${order.id}`} className="btn btn-primary">
-            Detail Pesanan
-          </Link>
-          <Link to="/orders" className="btn btn-outline">
-            Semua Pesanan
-          </Link>
-        </div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="loading loading-spinner loading-lg"></div>
+        <p className="mt-4">Memproses pembayaran...</p>
       </div>
     </div>
   );

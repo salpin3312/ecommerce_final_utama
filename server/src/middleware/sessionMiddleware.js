@@ -6,5 +6,5 @@ export const sessionMiddleware = cookieSession({
   maxAge: 24 * 60 * 60 * 1000, // 24 jam
   httpOnly: true, // Mencegah akses dari JavaScript
   secure: process.env.NODE_ENV === "production", // Hanya aktif di HTTPS
-  sameSite: "strict",
+  sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // Lebih fleksibel di development
 });

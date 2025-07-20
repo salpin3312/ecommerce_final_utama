@@ -1,19 +1,17 @@
 import express from "express";
 import {
-   addProduct,
-   getAllProducts,
-   getProductById,
-   updateProduct,
-   deleteProduct,
-   searchProducts,
-   updateProductStatus,
+  addProduct,
+  getAllProducts,
+  getProductById,
+  updateProduct,
+  deleteProduct,
+  searchProducts,
+  updateProductStatus,
 } from "../controller/productController.js";
 import upload from "../middleware/multerMiddleware.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 
 const routerProduct = express.Router();
-
-routerProduct.use(authenticateToken);
 
 /**
  * @swagger
@@ -116,7 +114,12 @@ routerProduct.get("/products/search", searchProducts);
  *       401:
  *         description: Unauthorized
  */
-routerProduct.post("/products", authenticateToken, upload.single("image"), addProduct);
+routerProduct.post(
+  "/products",
+  authenticateToken,
+  upload.single("image"),
+  addProduct
+);
 
 /**
  * @swagger
@@ -155,7 +158,12 @@ routerProduct.post("/products", authenticateToken, upload.single("image"), addPr
  *       404:
  *         description: Product not found
  */
-routerProduct.put("/products/:id", authenticateToken, upload.single("image"), updateProduct);
+routerProduct.put(
+  "/products/:id",
+  authenticateToken,
+  upload.single("image"),
+  updateProduct
+);
 
 /**
  * @swagger
@@ -192,7 +200,11 @@ routerProduct.put("/products/:id", authenticateToken, upload.single("image"), up
  *       404:
  *         description: Product not found
  */
-routerProduct.patch("/products/:id/status", authenticateToken, updateProductStatus);
+routerProduct.patch(
+  "/products/:id/status",
+  authenticateToken,
+  updateProductStatus
+);
 
 /**
  * @swagger

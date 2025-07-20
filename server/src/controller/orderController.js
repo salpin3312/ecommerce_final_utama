@@ -87,6 +87,20 @@ export const createOrder = async (req, res) => {
       });
     }
 
+    // Validasi dan bersihkan nomor telepon
+    const cleanPhone = phone.replace(/[^0-9]/g, ""); // Hapus semua karakter kecuali angka
+    if (cleanPhone.length > 15) {
+      return res.status(400).json({
+        message: "Nomor telepon terlalu panjang. Maksimal 15 digit.",
+      });
+    }
+
+    if (cleanPhone.length < 10) {
+      return res.status(400).json({
+        message: "Nomor telepon terlalu pendek. Minimal 10 digit.",
+      });
+    }
+
     // Dapatkan cart items
     const cartItems = await prisma.cart.findMany({
       where: {
@@ -129,7 +143,7 @@ export const createOrder = async (req, res) => {
         data: {
           userId: userId,
           name: name,
-          phone: phone,
+          phone: cleanPhone, // Gunakan nomor telepon yang sudah dibersihkan
           address: address,
           totalPrice: totalPrice,
           status: "Menunggu_Konfirmasi",

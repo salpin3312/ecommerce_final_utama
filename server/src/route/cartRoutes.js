@@ -1,11 +1,15 @@
 import express from "express";
 import { authenticateToken } from "../middleware/authMiddleware.js";
-import { addToCart, clearCart, getUserCart, removeFromCart, updateCartItem } from "../controller/cartController.js";
+import {
+  addToCart,
+  clearCart,
+  getUserCart,
+  removeFromCart,
+  updateCartItem,
+} from "../controller/cartController.js";
+import prisma from "../config/prisma.js";
 
 const routerCart = express.Router();
-
-// Semua routes cart memerlukan autentikasi
-routerCart.use(authenticateToken);
 
 /**
  * @swagger
@@ -13,6 +17,34 @@ routerCart.use(authenticateToken);
  *   name: Cart
  *   description: Shopping cart management
  */
+
+/**
+ * @swagger
+ * /cart/count:
+ *   get:
+ *     summary: Get cart count for authenticated user
+ *     tags: [Cart]
+ *     responses:
+ *       200:
+ *         description: Cart count
+ *       401:
+ *         description: Unauthorized
+ */
+routerCart.get("/cart/count", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const cartItems = await prisma.cart.findMany({
+      where: { userId: userId },
+      select: { quantity: true },
+    });
+
+    const count = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    res.status(200).json({ count });
+  } catch (error) {
+    console.error("Error getting cart count:", error);
+    res.status(500).json({ message: "Error getting cart count" });
+  }
+});
 
 /**
  * @swagger
@@ -26,7 +58,7 @@ routerCart.use(authenticateToken);
  *       401:
  *         description: Unauthorized
  */
-routerCart.get("/cart", getUserCart);
+routerCart.get("/cart", authenticateToken, getUserCart);
 
 /**
  * @swagger
@@ -56,7 +88,7 @@ routerCart.get("/cart", getUserCart);
  *       401:
  *         description: Unauthorized
  */
-routerCart.post("/cart", addToCart);
+routerCart.post("/cart", authenticateToken, addToCart);
 
 /**
  * @swagger
@@ -92,7 +124,7 @@ routerCart.post("/cart", addToCart);
  *       404:
  *         description: Cart item not found
  */
-routerCart.put("/cart/:cartId", updateCartItem);
+routerCart.put("/cart/:cartId", authenticateToken, updateCartItem);
 
 /**
  * @swagger
@@ -115,7 +147,7 @@ routerCart.put("/cart/:cartId", updateCartItem);
  *       404:
  *         description: Cart item not found
  */
-routerCart.delete("/cart/:cartId", removeFromCart);
+routerCart.delete("/cart/:cartId", authenticateToken, removeFromCart);
 
 /**
  * @swagger
@@ -129,6 +161,6 @@ routerCart.delete("/cart/:cartId", removeFromCart);
  *       401:
  *         description: Unauthorized
  */
-routerCart.delete("/cart", clearCart);
+routerCart.delete("/cart", authenticateToken, clearCart);
 
 export default routerCart;

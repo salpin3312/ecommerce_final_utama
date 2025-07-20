@@ -3,7 +3,6 @@ import * as paymentController from "../controller/payment.controller.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 
 const routerPayment = Router();
-routerPayment.use(authenticateToken);
 
 /**
  * @swagger
@@ -11,6 +10,15 @@ routerPayment.use(authenticateToken);
  *   name: Payment
  *   description: Payment processing and notifications
  */
+
+// Endpoint yang boleh diakses publik (tanpa auth) - hanya notification dari Midtrans
+routerPayment.post(
+  "/payment/notification",
+  paymentController.handleNotification
+);
+
+// Endpoint lain memerlukan authentication
+routerPayment.use(authenticateToken);
 
 /**
  * @swagger
@@ -38,12 +46,7 @@ routerPayment.use(authenticateToken);
  *         description: Unauthorized
  */
 
-// Endpoint yang boleh diakses publik (tanpa auth)
-routerPayment.post("/payment/notification", paymentController.handleNotification);
 routerPayment.post("/payment/snap-token", paymentController.createSnapToken);
-
-// Endpoint lain pakai authenticateToken
-
 routerPayment.post("/payment/charge", paymentController.chargePayment);
 
 /**
@@ -67,6 +70,9 @@ routerPayment.post("/payment/charge", paymentController.chargePayment);
  *       404:
  *         description: Order/payment not found
  */
-routerPayment.get("/payment/status/:orderId", paymentController.getPaymentStatus);
+routerPayment.get(
+  "/payment/status/:orderId",
+  paymentController.getPaymentStatus
+);
 
 export default routerPayment;

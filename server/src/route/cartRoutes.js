@@ -1,17 +1,11 @@
 import express from "express";
-import { authMiddleware } from "../middleware/authMiddleware.js";
-import {
-  addToCart,
-  clearCart,
-  getUserCart,
-  removeFromCart,
-  updateCartItem,
-} from "../controller/cartController.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
+import { addToCart, clearCart, getUserCart, removeFromCart, updateCartItem } from "../controller/cartController.js";
 
 const routerCart = express.Router();
 
 // Semua routes cart memerlukan autentikasi
-routerCart.use(authMiddleware);
+routerCart.use(authenticateToken);
 
 /**
  * @swagger

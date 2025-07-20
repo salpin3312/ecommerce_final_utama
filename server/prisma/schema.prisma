@@ -20,6 +20,11 @@ model User {
   password   String   @db.VarChar(255)
   role       UserRole @default(USER) 
   createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  phone      String?  @db.VarChar(20)
+  address    String?  @db.VarChar(255)
+  dateOfBirth DateTime? @map("date_of_birth")
+  avatar     String?  @db.VarChar(255)
 
   carts      Cart[]
   orders     Order[]

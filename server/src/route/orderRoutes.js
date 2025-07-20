@@ -1,18 +1,18 @@
 import express from "express";
-import { authMiddleware } from "../middleware/authMiddleware.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
 import {
-  cancelOrder,
-  createOrder,
-  getAllOrders,
-  getOrderById,
-  getUserOrders,
-  updateOrderStatus,
+   cancelOrder,
+   createOrder,
+   getAllOrders,
+   getOrderById,
+   getUserOrders,
+   updateOrderStatus,
 } from "../controller/orderController.js";
 
 const routerOrder = express.Router();
 
 // Routes untuk user (memerlukan autentikasi)
-routerOrder.use(authMiddleware);
+routerOrder.use(authenticateToken);
 
 /**
  * @swagger

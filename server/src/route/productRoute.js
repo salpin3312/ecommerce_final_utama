@@ -1,17 +1,19 @@
 import express from "express";
 import {
-  addProduct,
-  getAllProducts,
-  getProductById,
-  updateProduct,
-  deleteProduct,
-  searchProducts,
-  updateProductStatus,
+   addProduct,
+   getAllProducts,
+   getProductById,
+   updateProduct,
+   deleteProduct,
+   searchProducts,
+   updateProductStatus,
 } from "../controller/productController.js";
 import upload from "../middleware/multerMiddleware.js";
-import { authMiddleware } from "../middleware/authMiddleware.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
 
 const routerProduct = express.Router();
+
+routerProduct.use(authenticateToken);
 
 /**
  * @swagger
@@ -114,12 +116,7 @@ routerProduct.get("/products/search", searchProducts);
  *       401:
  *         description: Unauthorized
  */
-routerProduct.post(
-  "/products",
-  authMiddleware,
-  upload.single("image"),
-  addProduct
-);
+routerProduct.post("/products", authenticateToken, upload.single("image"), addProduct);
 
 /**
  * @swagger
@@ -158,12 +155,7 @@ routerProduct.post(
  *       404:
  *         description: Product not found
  */
-routerProduct.put(
-  "/products/:id",
-  authMiddleware,
-  upload.single("image"),
-  updateProduct
-);
+routerProduct.put("/products/:id", authenticateToken, upload.single("image"), updateProduct);
 
 /**
  * @swagger
@@ -200,11 +192,7 @@ routerProduct.put(
  *       404:
  *         description: Product not found
  */
-routerProduct.patch(
-  "/products/:id/status",
-  authMiddleware,
-  updateProductStatus
-);
+routerProduct.patch("/products/:id/status", authenticateToken, updateProductStatus);
 
 /**
  * @swagger
@@ -232,6 +220,6 @@ routerProduct.patch(
  *       404:
  *         description: Product not found
  */
-routerProduct.delete("/products/:id", authMiddleware, deleteProduct);
+routerProduct.delete("/products/:id", authenticateToken, deleteProduct);
 
 export default routerProduct;

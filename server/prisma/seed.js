@@ -3,10 +3,9 @@ import bcrypt from "bcryptjs";
 import prisma from "../src/config/prisma.js";
 
 async function main() {
-   // Hash password untuk admin dan kasir
+   // Hash password untuk admin
    const saltRounds = 10;
    const adminPassword = await bcrypt.hash("admin123", saltRounds);
-   const userPassword = await bcrypt.hash("user123", saltRounds);
 
    // Buat user admin
    const admin = await prisma.user.create({
@@ -15,16 +14,12 @@ async function main() {
          email: "admin@example.com",
          password: adminPassword,
          role: "ADMIN",
-      },
-   });
-
-   // Buat user kasir
-   const user = await prisma.user.create({
-      data: {
-         name: "User",
-         email: "User@example.com",
-         password: userPassword,
-         role: "USER",
+         phone: "08123456789",
+         address: "Jl. Contoh No. 1, Jakarta",
+         dateOfBirth: new Date("1990-01-01"),
+         avatar: null,
+         createdAt: new Date(),
+         updatedAt: new Date(),
       },
    });
 

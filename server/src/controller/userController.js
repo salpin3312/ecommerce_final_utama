@@ -5,219 +5,248 @@ const prisma = new PrismaClient();
 
 // Get user profile
 export const getProfile = async (req, res) => {
-   try {
-      const user = req.user; // Dari middleware auth
+  try {
+    let user = req.user; // Dari middleware auth
+    console.log("Get profile - User from req:", user);
 
-      res.json({
-         success: true,
-         user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            address: user.address,
-            dateOfBirth: user.dateOfBirth,
-            avatar: user.avatar,
-            role: user.role,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-         },
+    // Jika data user tidak lengkap, ambil dari database
+    if (!user.phone && !user.address) {
+      console.log("Fetching complete user data from database");
+      const completeUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+          dateOfBirth: true,
+          avatar: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
-   } catch (error) {
-      console.error("Get profile error:", error);
-      res.status(500).json({
-         success: false,
-         message: "Gagal mengambil data profile",
-      });
-   }
+
+      if (completeUser) {
+        user = completeUser;
+        console.log("Complete user data from database:", user);
+      }
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+        dateOfBirth: user.dateOfBirth,
+        avatar: user.avatar,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Get profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Gagal mengambil data profile",
+    });
+  }
 };
 
 // Update user profile
 export const updateProfile = async (req, res) => {
-   try {
-      const { name, phone, address, dateOfBirth } = req.body;
-      const userId = req.user.id;
+  try {
+    const { name, phone, address, dateOfBirth } = req.body;
+    const userId = req.user.id;
 
-      // Validation
-      if (!name || name.trim().length === 0) {
-         return res.status(400).json({
-            success: false,
-            message: "Nama tidak boleh kosong",
-         });
-      }
+    // Validation
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Nama tidak boleh kosong",
+      });
+    }
 
-      // Update user
-      const updatedUser = await prisma.user.update({
-         where: { id: userId },
-         data: {
-            name: name.trim(),
-            phone: phone || null,
-            address: address || null,
-            dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-            updatedAt: new Date(),
-         },
-         select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            address: true,
-            dateOfBirth: true,
-            avatar: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true,
-         },
-      });
+    // Update user
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: name.trim(),
+        phone: phone || null,
+        address: address || null,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        dateOfBirth: true,
+        avatar: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
-      res.json({
-         success: true,
-         message: "Profile berhasil diperbarui",
-         user: updatedUser,
-      });
-   } catch (error) {
-      console.error("Update profile error:", error);
-      res.status(500).json({
-         success: false,
-         message: "Gagal memperbarui profile",
-      });
-   }
+    res.json({
+      success: true,
+      message: "Profile berhasil diperbarui",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Gagal memperbarui profile",
+    });
+  }
 };
 
 // Change password
 export const changePassword = async (req, res) => {
-   try {
-      const { currentPassword, newPassword } = req.body;
-      const userId = req.user.id;
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
 
-      // Validation
-      if (!currentPassword || !newPassword) {
-         return res.status(400).json({
-            success: false,
-            message: "Password saat ini dan password baru harus diisi",
-         });
-      }
-
-      if (newPassword.length < 6) {
-         return res.status(400).json({
-            success: false,
-            message: "Password baru minimal 6 karakter",
-         });
-      }
-
-      // Get user with password
-      const user = await prisma.user.findUnique({
-         where: { id: userId },
-         select: { id: true, password: true },
+    // Validation
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Password saat ini dan password baru harus diisi",
       });
+    }
 
-      if (!user) {
-         return res.status(404).json({
-            success: false,
-            message: "User tidak ditemukan",
-         });
-      }
-
-      // Verify current password
-      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
-      if (!isValidPassword) {
-         return res.status(400).json({
-            success: false,
-            message: "Password saat ini salah",
-         });
-      }
-
-      // Hash new password
-      const saltRounds = 10;
-      const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
-
-      // Update password
-      await prisma.user.update({
-         where: { id: userId },
-         data: {
-            password: hashedNewPassword,
-            updatedAt: new Date(),
-         },
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password baru minimal 6 karakter",
       });
+    }
 
-      res.json({
-         success: true,
-         message: "Password berhasil diubah",
+    // Get user with password
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, password: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User tidak ditemukan",
       });
-   } catch (error) {
-      console.error("Change password error:", error);
-      res.status(500).json({
-         success: false,
-         message: "Gagal mengubah password",
+    }
+
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+    if (!isValidPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Password saat ini salah",
       });
-   }
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedNewPassword,
+        updatedAt: new Date(),
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Password berhasil diubah",
+    });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Gagal mengubah password",
+    });
+  }
 };
 
 // Upload avatar
 export const uploadAvatar = async (req, res) => {
-   try {
-      if (!req.file) {
-         return res.status(400).json({
-            success: false,
-            message: "File avatar tidak ditemukan",
-         });
-      }
-      const userId = req.user.id;
-      // Path relatif untuk disimpan di database
-      const avatarUrl = `/uploads/${req.file.filename}`;
-      // Update user
-      const updatedUser = await prisma.user.update({
-         where: { id: userId },
-         data: { avatar: avatarUrl, updatedAt: new Date() },
-         select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            address: true,
-            dateOfBirth: true,
-            avatar: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true,
-         },
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "File avatar tidak ditemukan",
       });
-      res.json({
-         success: true,
-         message: "Avatar berhasil diupload",
-         user: updatedUser,
-      });
-   } catch (error) {
-      console.error("Upload avatar error:", error);
-      res.status(500).json({
-         success: false,
-         message: "Gagal upload avatar",
-      });
-   }
+    }
+    const userId = req.user.id;
+    // Path relatif untuk disimpan di database
+    const avatarUrl = `/uploads/${req.file.filename}`;
+    // Update user
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { avatar: avatarUrl, updatedAt: new Date() },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        dateOfBirth: true,
+        avatar: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    res.json({
+      success: true,
+      message: "Avatar berhasil diupload",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Upload avatar error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Gagal upload avatar",
+    });
+  }
 };
 
 // Get all users (for admin dashboard)
 export const getAllUsers = async (req, res) => {
-   try {
-      const users = await prisma.user.findMany({
-         select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            createdAt: true,
-         },
-      });
-      res.json({
-         success: true,
-         total: users.length,
-         users,
-      });
-   } catch (error) {
-      console.error("Get all users error:", error);
-      res.status(500).json({
-         success: false,
-         message: "Gagal mengambil data users",
-      });
-   }
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+    res.json({
+      success: true,
+      total: users.length,
+      users,
+    });
+  } catch (error) {
+    console.error("Get all users error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Gagal mengambil data users",
+    });
+  }
 };

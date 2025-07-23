@@ -37,18 +37,18 @@ const routerShipping = Router();
  *         description: Internal server error
  */
 routerShipping.get("/shipping/cities", async (req, res) => {
-  try {
-    const apiKey = process.env.RAJAONGKIR_API_KEY;
-    const baseUrl = process.env.RAJAONGKIR_BASE_URL || "https://api.rajaongkir.com/starter";
-    const url = `${baseUrl}/city`;
-    const response = await axios.get(url, {
-      headers: { key: apiKey },
-    });
-    const cities = response.data?.rajaongkir?.results || [];
-    res.json({ cities });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch cities" });
-  }
+   try {
+      const apiKey = process.env.RAJAONGKIR_API_KEY;
+      const baseUrl = process.env.RAJAONGKIR_BASE_URL || "https://api.rajaongkir.com/starter";
+      const url = `${baseUrl}/city`;
+      const response = await axios.get(url, {
+         headers: { key: apiKey },
+      });
+      const cities = response.data?.rajaongkir?.results || [];
+      res.json({ cities });
+   } catch (error) {
+      res.status(500).json({ message: "Failed to fetch cities" });
+   }
 });
 
 /**
@@ -127,4 +127,4 @@ routerShipping.get("/shipping/cities", async (req, res) => {
  */
 routerShipping.post("/shipping/cost", getShippingCost);
 
-export default routerShipping; 
+export default routerShipping;

@@ -1,12 +1,12 @@
 import express from "express";
 import {
-  addProduct,
-  getAllProducts,
-  getProductById,
-  updateProduct,
-  deleteProduct,
-  searchProducts,
-  updateProductStatus,
+   addProduct,
+   getAllProducts,
+   getProductById,
+   updateProduct,
+   deleteProduct,
+   searchProducts,
+   updateProductStatus,
 } from "../controller/productController.js";
 import upload from "../middleware/multerMiddleware.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
@@ -46,6 +46,24 @@ routerProduct.get("/products", getAllProducts);
 
 /**
  * @swagger
+ * /products/search:
+ *   get:
+ *     summary: Search products
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search query
+ *     responses:
+ *       200:
+ *         description: Search results
+ */
+routerProduct.get("/products/search", searchProducts);
+
+/**
+ * @swagger
  * /products/{id}:
  *   get:
  *     summary: Get product by ID
@@ -64,24 +82,6 @@ routerProduct.get("/products", getAllProducts);
  *         description: Product not found
  */
 routerProduct.get("/products/:id", getProductById);
-
-/**
- * @swagger
- * /products/search:
- *   get:
- *     summary: Search products
- *     tags: [Products]
- *     parameters:
- *       - in: query
- *         name: q
- *         schema:
- *           type: string
- *         description: Search query
- *     responses:
- *       200:
- *         description: Search results
- */
-routerProduct.get("/products/search", searchProducts);
 
 /**
  * @swagger
@@ -114,12 +114,7 @@ routerProduct.get("/products/search", searchProducts);
  *       401:
  *         description: Unauthorized
  */
-routerProduct.post(
-  "/products",
-  authenticateToken,
-  upload.single("image"),
-  addProduct
-);
+routerProduct.post("/products", authenticateToken, upload.single("image"), addProduct);
 
 /**
  * @swagger
@@ -158,12 +153,7 @@ routerProduct.post(
  *       404:
  *         description: Product not found
  */
-routerProduct.put(
-  "/products/:id",
-  authenticateToken,
-  upload.single("image"),
-  updateProduct
-);
+routerProduct.put("/products/:id", authenticateToken, upload.single("image"), updateProduct);
 
 /**
  * @swagger
@@ -200,11 +190,7 @@ routerProduct.put(
  *       404:
  *         description: Product not found
  */
-routerProduct.patch(
-  "/products/:id/status",
-  authenticateToken,
-  updateProductStatus
-);
+routerProduct.patch("/products/:id/status", authenticateToken, updateProductStatus);
 
 /**
  * @swagger

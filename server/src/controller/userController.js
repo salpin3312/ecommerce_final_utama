@@ -255,3 +255,73 @@ export const getAllUsers = async (req, res) => {
       });
    }
 };
+
+// ADMIN: Hapus user
+export const deleteUser = async (req, res) => {
+   try {
+      const { id } = req.params;
+      // Tidak boleh hapus diri sendiri
+      if (req.user.id === id) {
+         return res.status(400).json({ success: false, message: "Tidak bisa menghapus user sendiri." });
+      }
+      // Cek user
+      const user = await prisma.user.findUnique({ where: { id } });
+      if (!user) {
+         return res.status(404).json({ success: false, message: "User tidak ditemukan." });
+      }
+      await prisma.user.delete({ where: { id } });
+      res.json({ success: true, message: "User berhasil dihapus." });
+   } catch (error) {
+      console.error("Delete user error:", error);
+      res.status(500).json({ success: false, message: "Gagal menghapus user." });
+   }
+};
+
+// ADMIN: Update user (name, email, role)
+export const updateUserByAdmin = async (req, res) => {
+   try {
+      const { id } = req.params;
+      const { name, email, role, newPassword } = req.body;
+      // Tidak boleh edit diri sendiri menjadi non-admin
+      if (req.user.id === id && role && role !== "ADMIN") {
+         return res
+            .status(400)
+            .json({ success: false, message: "Tidak bisa mengubah role sendiri menjadi non-admin." });
+      }
+      // Cek user
+      const user = await prisma.user.findUnique({ where: { id } });
+      if (!user) {
+         return res.status(404).json({ success: false, message: "User tidak ditemukan." });
+      }
+      const updateData = {
+         name: name !== undefined ? name : user.name,
+         email: email !== undefined ? email : user.email,
+         // Role boleh diubah ke ADMIN/USER untuk user lain, kecuali untuk diri sendiri ke non-admin
+         role: role !== undefined ? role : user.role,
+         updatedAt: new Date(),
+      };
+      if (newPassword) {
+         if (newPassword.length < 6) {
+            return res.status(400).json({ success: false, message: "Password minimal 6 karakter." });
+         }
+         const hashed = await bcrypt.hash(newPassword, 10);
+         updateData.password = hashed;
+      }
+      const updatedUser = await prisma.user.update({
+         where: { id },
+         data: updateData,
+         select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true,
+         },
+      });
+      res.json({ success: true, message: "User berhasil diupdate.", user: updatedUser });
+   } catch (error) {
+      console.error("Update user by admin error:", error);
+      res.status(500).json({ success: false, message: "Gagal mengupdate user." });
+   }
+};

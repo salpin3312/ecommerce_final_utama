@@ -306,6 +306,12 @@ function Dashboard() {
       ...users.filter((u) => u.role !== "ADMIN").sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
    ];
 
+   // Untuk tabel bawah: hanya user role USER, urut terbaru, ambil 5 teratas
+   const latestUsers = users
+      .filter((u) => u.role === "USER")
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5);
+
    // Sort recent orders by createdAt descending (newest first)
    const sortedRecentOrders = [...recentOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
    // Paginated data
@@ -548,9 +554,9 @@ function Dashboard() {
 
          {/* User Table for Admin */}
          <div className="bg-white rounded-lg shadow-lg p-6 mt-6">
-            <h2 className="text-xl font-semibold mb-4">Users</h2>
+            <h2 className="text-xl font-semibold mb-4">Users Terbaru</h2>
             <div className="overflow-x-auto">
-               {sortedUsers.length > 0 ? (
+               {latestUsers.length > 0 ? (
                   <>
                      <table className="table-auto w-full">
                         <thead>
@@ -558,44 +564,30 @@ function Dashboard() {
                               <th className="px-1 py-2 text-left">No</th>
                               <th className="px-4 py-2 text-left">Name</th>
                               <th className="px-4 py-2 text-left">Email</th>
+                              <th className="px-4 py-2 text-left">Dibuat</th>
                            </tr>
                         </thead>
                         <tbody>
-                           {paginatedUsers.map((user, idx) => (
-                              <tr key={user.id} className={user.role === "ADMIN" ? "font-bold" : ""}>
-                                 <td className="border px-4 py-2">{(userPage - 1) * USERS_PER_PAGE + idx + 1}</td>
+                           {latestUsers.map((user, idx) => (
+                              <tr key={user.id}>
+                                 <td className="border px-4 py-2">{idx + 1}</td>
                                  <td className="border px-4 py-2">{user.name}</td>
                                  <td className="border px-4 py-2">{user.email}</td>
+                                 <td className="border px-4 py-2">
+                                    {user.createdAt
+                                       ? new Date(user.createdAt).toLocaleString("id-ID", {
+                                            year: "numeric",
+                                            month: "2-digit",
+                                            day: "2-digit",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                         })
+                                       : "-"}
+                                 </td>
                               </tr>
                            ))}
                         </tbody>
                      </table>
-                     {userTotalPages >= 1 && (
-                        <div className="flex justify-end mt-2">
-                           <div className="join">
-                              <button
-                                 className="join-item btn btn-sm"
-                                 onClick={() => setUserPage((p) => Math.max(1, p - 1))}
-                                 disabled={userPage === 1}>
-                                 &lt;
-                              </button>
-                              {[...Array(userTotalPages)].map((_, i) => (
-                                 <button
-                                    key={i}
-                                    className={`join-item btn btn-sm${userPage === i + 1 ? " btn-active" : ""}`}
-                                    onClick={() => setUserPage(i + 1)}>
-                                    {i + 1}
-                                 </button>
-                              ))}
-                              <button
-                                 className="join-item btn btn-sm"
-                                 onClick={() => setUserPage((p) => Math.min(userTotalPages, p + 1))}
-                                 disabled={userPage === userTotalPages}>
-                                 &gt;
-                              </button>
-                           </div>
-                        </div>
-                     )}
                   </>
                ) : (
                   <div className="text-center py-4 text-gray-500">No users found</div>

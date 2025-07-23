@@ -87,9 +87,6 @@ function ProductCard({ product }) {
             )}
 
             <div className="card-actions justify-between items-center mt-2">
-               <button className="btn btn-circle btn-outline">
-                  <Heart size={20} />
-               </button>
                <button className="btn btn-primary" onClick={handleAddToCart} disabled={loading}>
                   {loading ? (
                      <span className="loading loading-spinner loading-sm"></span>

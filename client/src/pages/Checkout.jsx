@@ -9,7 +9,11 @@ import {
 } from "../service/api/paymentService";
 import { getSession } from "../service/api/authService";
 import { toast } from "react-hot-toast";
-import { getShippingCost, getCities } from "../service/api/shippingService";
+import {
+  getShippingCost,
+  getCities,
+  getProvinces,
+} from "../service/api/shippingService";
 
 function Checkout() {
   const [cartItems, setCartItems] = useState([]);
@@ -23,7 +27,9 @@ function Checkout() {
   const [shippingOptions, setShippingOptions] = useState([]);
   const [selectedShipping, setSelectedShipping] = useState(null);
   const [shippingCost, setShippingCost] = useState(0);
+  const [provinces, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
+  const [selectedProvince, setSelectedProvince] = useState("");
   const [cityInput, setCityInput] = useState("");
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const cityInputRef = useRef(null);
@@ -90,54 +96,75 @@ function Checkout() {
   // Fetch shipping options when destinationCityId, courier, or weight changes
   useEffect(() => {
     const fetchShipping = async () => {
+      console.log("Shipping params:", {
+        origin: originCityId,
+        destination: destinationCityId,
+        weight,
+        courier,
+      });
+
       if (originCityId && destinationCityId && weight > 0 && courier) {
         try {
           const res = await getShippingCost({
             origin: originCityId,
-            destination: destinationCityId,
+            destination: destinationCityId.toString(), // Convert to string
             weight,
             courier,
           });
           setShippingOptions(res.services || []);
         } catch (err) {
-          setShippingOptions([]);
-          toast.error("Gagal mendapatkan ongkir");
+          console.error("Error fetching shipping options:", err);
+          toast.error("Gagal memuat opsi pengiriman");
         }
-      } else {
-        setShippingOptions([]);
       }
     };
+
     fetchShipping();
   }, [originCityId, destinationCityId, weight, courier]);
 
+  // Fetch provinces on mount
+  useEffect(() => {
+    const fetchProvinces = async () => {
+      try {
+        const provinceList = await getProvinces();
+        setProvinces(provinceList);
+      } catch (err) {
+        toast.error("Gagal memuat daftar provinsi");
+      }
+    };
+    fetchProvinces();
+  }, []);
+
+  // Fetch cities when province changes
+  useEffect(() => {
+    const fetchCities = async () => {
+      if (selectedProvince) {
+        try {
+          const cityList = await getCities(selectedProvince);
+          setCities(cityList);
+        } catch (err) {
+          toast.error("Gagal memuat daftar kota");
+        }
+      } else {
+        setCities([]);
+      }
+    };
+    fetchCities();
+  }, [selectedProvince]);
+
   // Update shipping cost when user selects a shipping service
   useEffect(() => {
-    if (selectedShipping && selectedShipping.cost && selectedShipping.cost[0]) {
-      setShippingCost(selectedShipping.cost[0].value);
+    if (selectedShipping && selectedShipping.cost) {
+      setShippingCost(selectedShipping.cost);
     } else {
       setShippingCost(0);
     }
   }, [selectedShipping]);
 
-  // Fetch city list on mount
-  useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        const cityList = await getCities();
-        setCities(cityList);
-      } catch (err) {
-        toast.error("Gagal memuat daftar kota");
-      }
-    };
-    fetchCities();
-  }, []);
-
   // Untuk menampilkan suggestion kota saat mengetik
   const filteredCities = cityInput
     ? cities.filter((city) =>
-        `${city.type} ${city.city_name}, ${city.province}`
-          .toLowerCase()
-          .includes(cityInput.toLowerCase())
+        city.name.toLowerCase().includes(cityInput.toLowerCase())
       )
     : [];
 
@@ -180,8 +207,8 @@ function Checkout() {
           ? {
               service: selectedShipping.service,
               description: selectedShipping.description,
-              cost: selectedShipping.cost[0].value,
-              etd: selectedShipping.cost[0].etd,
+              cost: selectedShipping.cost,
+              etd: selectedShipping.etd,
               courier,
             }
           : null,
@@ -208,7 +235,7 @@ function Checkout() {
         itemDetails.push({
           id: "shipping",
           name: `Ongkir (${selectedShipping.service})`,
-          price: Number(selectedShipping.cost[0].value),
+          price: Number(selectedShipping.cost),
           quantity: 1,
           category: "Shipping",
         });
@@ -334,6 +361,34 @@ function Checkout() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="mb-4">
+                  <label
+                    className="block text-gray-700 mb-2"
+                    htmlFor="province"
+                  >
+                    Provinsi
+                  </label>
+                  <select
+                    id="province"
+                    name="province"
+                    className="w-full p-2 border rounded"
+                    value={selectedProvince}
+                    onChange={(e) => {
+                      setSelectedProvince(e.target.value);
+                      setDestinationCityId(""); // Reset city when province changes
+                      setCityInput(""); // Clear city input
+                      setShowCitySuggestions(false);
+                    }}
+                    required
+                  >
+                    <option value="">Pilih Provinsi</option>
+                    {provinces.map((province) => (
+                      <option key={province.id} value={province.id}>
+                        {province.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-4">
                   <label className="block text-gray-700 mb-2" htmlFor="city">
                     Kota Tujuan
                   </label>
@@ -361,17 +416,15 @@ function Checkout() {
                       <ul className="absolute z-10 bg-white border w-full max-h-60 overflow-y-auto rounded shadow mt-1">
                         {filteredCities.map((city) => (
                           <li
-                            key={city.city_id}
+                            key={city.id}
                             className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                             onMouseDown={() => {
-                              setCityInput(
-                                `${city.type} ${city.city_name}, ${city.province}`
-                              );
-                              setDestinationCityId(city.city_id);
+                              setCityInput(city.name);
+                              setDestinationCityId(city.id.toString()); // Convert to string
                               setShowCitySuggestions(false);
                             }}
                           >
-                            {city.type} {city.city_name}, {city.province}
+                            {city.name}
                           </li>
                         ))}
                       </ul>
@@ -418,10 +471,13 @@ function Checkout() {
                   >
                     <option value="">Pilih Layanan</option>
                     {shippingOptions.map((opt) => (
-                      <option key={opt.service} value={opt.service}>
-                        {opt.service} - {opt.description} (Rp.{" "}
-                        {opt.cost[0].value.toLocaleString()}, Estimasi:{" "}
-                        {opt.cost[0].etd} hari)
+                      <option
+                        key={`${opt.code}-${opt.service}`}
+                        value={opt.service}
+                      >
+                        {opt.name} - {opt.service} (Rp.{" "}
+                        {opt.cost.toLocaleString()}, Estimasi:{" "}
+                        {opt.etd || "TBD"} hari)
                       </option>
                     ))}
                   </select>

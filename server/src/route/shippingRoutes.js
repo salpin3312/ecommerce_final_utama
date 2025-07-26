@@ -1,15 +1,53 @@
 import { Router } from "express";
-import { getShippingCost } from "../controller/shippingController.js";
-import axios from "axios";
+import {
+  getShippingCost,
+  getProvinces,
+  getCities,
+} from "../controller/shippingController.js";
 
 const routerShipping = Router();
 
 /**
  * @swagger
- * /shipping/cities:
+ * /shipping/provinces:
  *   get:
- *     summary: Get list of cities from RajaOngkir
+ *     summary: Get list of provinces from RajaOngkir
  *     tags: [Shipping]
+ *     responses:
+ *       200:
+ *         description: List of provinces
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 provinces:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *       500:
+ *         description: Internal server error
+ */
+routerShipping.get("/provinces", getProvinces);
+
+/**
+ * @swagger
+ * /shipping/cities/{provinceId}:
+ *   get:
+ *     summary: Get list of cities from RajaOngkir by province ID
+ *     tags: [Shipping]
+ *     parameters:
+ *       - in: path
+ *         name: provinceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Province ID
  *     responses:
  *       200:
  *         description: List of cities
@@ -23,33 +61,16 @@ const routerShipping = Router();
  *                   items:
  *                     type: object
  *                     properties:
- *                       city_id:
+ *                       id:
+ *                         type: integer
+ *                       name:
  *                         type: string
- *                       city_name:
- *                         type: string
- *                       province:
- *                         type: string
- *                       province_id:
- *                         type: string
- *                       type:
- *                         type: string
+ *       400:
+ *         description: Province ID is required
  *       500:
  *         description: Internal server error
  */
-routerShipping.get("/shipping/cities", async (req, res) => {
-   try {
-      const apiKey = process.env.RAJAONGKIR_API_KEY;
-      const baseUrl = process.env.RAJAONGKIR_BASE_URL || "https://api.rajaongkir.com/starter";
-      const url = `${baseUrl}/city`;
-      const response = await axios.get(url, {
-         headers: { key: apiKey },
-      });
-      const cities = response.data?.rajaongkir?.results || [];
-      res.json({ cities });
-   } catch (error) {
-      res.status(500).json({ message: "Failed to fetch cities" });
-   }
-});
+routerShipping.get("/cities/:provinceId", getCities);
 
 /**
  * @swagger
@@ -125,6 +146,6 @@ routerShipping.get("/shipping/cities", async (req, res) => {
  *       500:
  *         description: Internal server error
  */
-routerShipping.post("/shipping/cost", getShippingCost);
+routerShipping.post("/cost", getShippingCost);
 
 export default routerShipping;

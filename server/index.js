@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import router from "./src/route/index.js";
+import routerShipping from "./src/route/shippingRoutes.js";
 import { sessionMiddleware } from "./src/middleware/sessionMiddleware.js";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
@@ -33,6 +34,9 @@ app.use(express.json());
 
 // Pasang endpoint notifikasi Midtrans langsung, tanpa sessionMiddleware
 app.post("/api/payment/notification", paymentController.handleNotification);
+
+// Pasang shipping routes tanpa sessionMiddleware (data publik)
+app.use("/api/shipping", routerShipping);
 
 // Setelah itu, pasang sessionMiddleware untuk route lain
 app.use(sessionMiddleware);

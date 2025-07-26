@@ -1,7 +1,10 @@
 import axios from "axios";
 
 // Base URL dari API backend
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+// Debug: log base URL
+console.log("API_URL:", API_URL);
 
 // Membuat instance axios dengan konfigurasi default
 const axiosInstance = axios.create({

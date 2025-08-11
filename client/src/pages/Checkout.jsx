@@ -333,7 +333,7 @@ function Checkout() {
          <div className="mb-6">
             <button
                onClick={() => navigate("/cart")}
-               className="inline-flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500 transition-all duration-200 ease-in-out group active:scale-95"
+               className="group inline-flex items-center w-full sm:w-auto gap-3 px-5 sm:px-6 py-3 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-full shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-95 transition-all duration-200"
                aria-label="Kembali ke halaman keranjang">
                <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -345,7 +345,7 @@ function Checkout() {
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="transition-transform duration-200 group-hover:-translate-x-1 group-focus:-translate-x-1"
+                  className="h-4 w-4 sm:h-5 sm:w-5 transition-transform duration-200 group-hover:-translate-x-1 group-focus:-translate-x-1"
                   aria-hidden="true">
                   <path d="m15 18-6-6 6-6" />
                </svg>

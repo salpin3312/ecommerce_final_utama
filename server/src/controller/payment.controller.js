@@ -164,6 +164,10 @@ export const createSnapToken = async (req, res) => {
          item_details,
       });
 
+      // Debug: Log Midtrans configuration
+      console.log("Midtrans Server Key:", process.env.MIDTRANS_SERVER_KEY);
+      console.log("Midtrans Client Key:", process.env.MIDTRANS_CLIENT_KEY);
+
       // Validasi input
       if (!order_id || !gross_amount || !customer_details || !item_details) {
          return res.status(400).json({
@@ -237,9 +241,19 @@ export const createSnapToken = async (req, res) => {
 
       console.log("Midtrans parameter:", JSON.stringify(parameter, null, 2));
 
-      const token = await snap.createTransaction(parameter);
-
-      console.log("Snap token created:", token.token);
+      let token;
+      try {
+         token = await snap.createTransaction(parameter);
+         console.log("Snap token created:", token.token);
+      } catch (midtransError) {
+         console.error("Midtrans API Error:", midtransError);
+         console.error("Midtrans Error Response:", midtransError.apiResponse);
+         return res.status(500).json({
+            status: false,
+            message: `Midtrans API Error: ${midtransError.message}`,
+            details: midtransError.apiResponse || midtransError.message,
+         });
+      }
 
       return res.status(200).json({
          status: true,

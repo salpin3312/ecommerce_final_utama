@@ -32,7 +32,10 @@ function Checkout() {
    const [selectedProvince, setSelectedProvince] = useState("");
    const [cityInput, setCityInput] = useState("");
    const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+   const [provinceInput, setProvinceInput] = useState("");
+   const [showProvinceSuggestions, setShowProvinceSuggestions] = useState(false);
    const cityInputRef = useRef(null);
+   const provinceInputRef = useRef(null);
 
    // Inisialisasi Midtrans Snap
    useEffect(() => {
@@ -179,6 +182,11 @@ function Checkout() {
       ? cities.filter((city) => city.name.toLowerCase().includes(cityInput.toLowerCase()))
       : [];
 
+   // Untuk menampilkan suggestion provinsi saat mengetik
+   const filteredProvinces = provinceInput
+      ? provinces.filter((province) => province.name.toLowerCase().includes(provinceInput.toLowerCase()))
+      : [];
+
    // Menghitung total
    const total = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
@@ -263,32 +271,43 @@ function Checkout() {
          console.log("Sending data to Midtrans:", midtransData);
 
          // Dapatkan Snap Token
-         const snapData = await createSnapToken(midtransData);
+         try {
+            const snapData = await createSnapToken(midtransData);
+            console.log("Snap data received:", snapData);
 
-         if (snapData.status && snapData.token) {
-            // Tampilkan Snap Payment
-            window.snap.pay(snapData.token, {
-               onSuccess: async function (result) {
-                  toast.success("Pembayaran berhasil!");
-                  await clearCart();
-                  navigate(`/payment/status/success/${orderResponse.order.id}`);
-               },
-               onPending: function (result) {
-                  toast.success("Pembayaran dalam proses. Silakan selesaikan pembayaran Anda.");
-                  navigate(`/payment/pending/${orderResponse.order.id}`);
-               },
-               onError: function (result) {
-                  toast.error("Pembayaran gagal. Silakan coba lagi.");
-                  navigate(`/payment/failed/${orderResponse.order.id}`);
-               },
-               onClose: function () {
-                  toast.info("Jendela pembayaran ditutup. Pesanan Anda tersimpan.");
-                  // Periksa status pembayaran setelah jendela ditutup
-                  navigate(`/orders/${orderResponse.order.id}`);
-               },
-            });
-         } else {
-            toast.error("Gagal menginisialisasi pembayaran");
+            if (snapData.status && snapData.token) {
+               // Tampilkan Snap Payment
+               window.snap.pay(snapData.token, {
+                  onSuccess: async function (result) {
+                     toast.success("Pembayaran berhasil!");
+                     await clearCart();
+                     navigate(`/payment/status/success/${orderResponse.order.id}`);
+                  },
+                  onPending: function (result) {
+                     toast.success("Pembayaran dalam proses. Silakan selesaikan pembayaran Anda.");
+                     navigate(`/payment/pending/${orderResponse.order.id}`);
+                  },
+                  onError: function (result) {
+                     toast.error("Pembayaran gagal. Silakan coba lagi.");
+                     navigate(`/payment/failed/${orderResponse.order.id}`);
+                  },
+                  onClose: function () {
+                     toast.info("Jendela pembayaran ditutup. Pesanan Anda tersimpan.");
+                     // Periksa status pembayaran setelah jendela ditutup
+                     navigate(`/orders/${orderResponse.order.id}`);
+                  },
+               });
+            } else {
+               toast.error("Gagal menginisialisasi pembayaran: " + (snapData.message || "Unknown error"));
+            }
+         } catch (snapError) {
+            console.error("Error creating snap token:", snapError);
+            const errorMessage =
+               snapError.response?.data?.message ||
+               snapError.response?.data?.details ||
+               snapError.message ||
+               "Gagal menginisialisasi pembayaran";
+            toast.error("Error Midtrans: " + errorMessage);
          }
       } catch (error) {
          console.error("Error creating order:", error);
@@ -310,6 +329,30 @@ function Checkout() {
 
    return (
       <div className="container mx-auto p-4">
+         {/* Back Button */}
+         <div className="mb-6">
+            <button
+               onClick={() => navigate("/cart")}
+               className="inline-flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500 transition-all duration-200 ease-in-out group active:scale-95"
+               aria-label="Kembali ke halaman keranjang">
+               <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="transition-transform duration-200 group-hover:-translate-x-1 group-focus:-translate-x-1"
+                  aria-hidden="true">
+                  <path d="m15 18-6-6 6-6" />
+               </svg>
+               <span className="font-semibold">Kembali ke Keranjang</span>
+            </button>
+         </div>
+
          <h1 className="text-2xl font-bold mb-6">Checkout</h1>
 
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -359,25 +402,58 @@ function Checkout() {
                            <label className="block text-gray-700 mb-2" htmlFor="province">
                               Provinsi
                            </label>
-                           <select
-                              id="province"
-                              name="province"
-                              className="w-full p-2 border rounded"
-                              value={selectedProvince}
-                              onChange={(e) => {
-                                 setSelectedProvince(e.target.value);
-                                 setDestinationCityId(""); // Reset city when province changes
-                                 setCityInput(""); // Clear city input
-                                 setShowCitySuggestions(false);
-                              }}
-                              required>
-                              <option value="">Pilih Provinsi</option>
-                              {provinces.map((province) => (
-                                 <option key={province.id} value={province.id}>
-                                    {province.name}
-                                 </option>
-                              ))}
-                           </select>
+                           <div className="relative">
+                              <input
+                                 id="province"
+                                 name="province"
+                                 className="w-full p-2 border rounded"
+                                 type="text"
+                                 autoComplete="off"
+                                 value={provinceInput}
+                                 onChange={(e) => {
+                                    setProvinceInput(e.target.value);
+                                    setShowProvinceSuggestions(true);
+                                 }}
+                                 onFocus={() => setShowProvinceSuggestions(true)}
+                                 onBlur={() => setTimeout(() => setShowProvinceSuggestions(false), 150)}
+                                 onKeyDown={(e) => {
+                                    if (e.key === "Enter" && filteredProvinces.length > 0) {
+                                       e.preventDefault();
+                                       const firstProvince = filteredProvinces[0];
+                                       setProvinceInput(firstProvince.name);
+                                       setSelectedProvince(firstProvince.id);
+                                       setShowProvinceSuggestions(false);
+                                       setDestinationCityId(""); // Reset city when province changes
+                                       setCityInput(""); // Clear city input
+                                       setShowCitySuggestions(false);
+                                    }
+                                 }}
+                                 placeholder="Ketik nama provinsi..."
+                                 ref={provinceInputRef}
+                                 required
+                              />
+                              {showProvinceSuggestions && filteredProvinces.length > 0 && (
+                                 <ul className="absolute z-20 bg-white border w-full max-h-60 overflow-y-auto rounded shadow mt-1">
+                                    {filteredProvinces.map((province) => (
+                                       <li
+                                          key={province.id}
+                                          className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                          onMouseDown={() => {
+                                             setProvinceInput(province.name);
+                                             setSelectedProvince(province.id);
+                                             setShowProvinceSuggestions(false);
+                                             setDestinationCityId(""); // Reset city when province changes
+                                             setCityInput(""); // Clear city input
+                                             setShowCitySuggestions(false);
+                                          }}>
+                                          {province.name}
+                                       </li>
+                                    ))}
+                                 </ul>
+                              )}
+                           </div>
+                           {/* Hidden input to keep province_id for form submit */}
+                           <input type="hidden" name="province_id" value={selectedProvince} />
                         </div>
                         <div className="mb-4">
                            <label className="block text-gray-700 mb-2" htmlFor="city">
@@ -397,6 +473,15 @@ function Checkout() {
                                  }}
                                  onFocus={() => setShowCitySuggestions(true)}
                                  onBlur={() => setTimeout(() => setShowCitySuggestions(false), 150)}
+                                 onKeyDown={(e) => {
+                                    if (e.key === "Enter" && filteredCities.length > 0) {
+                                       e.preventDefault();
+                                       const firstCity = filteredCities[0];
+                                       setCityInput(firstCity.name);
+                                       setDestinationCityId(firstCity.id.toString());
+                                       setShowCitySuggestions(false);
+                                    }
+                                 }}
                                  placeholder="Ketik nama kota..."
                                  ref={cityInputRef}
                                  required

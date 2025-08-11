@@ -147,11 +147,11 @@ function Orders() {
                                        className="border rounded-lg px-2 py-1 text-sm"
                                        value={order.status}
                                        onChange={(e) => handleStatusChange(order.id, e.target.value)}>
-                                       <option value="Menunggu_Konfirmasi">Waiting for Confirmation</option>
-                                       <option value="Dikonfirmasi">Confirmed</option>
-                                       <option value="Dikirim">Shipped</option>
-                                       <option value="Sampai">Delivered</option>
-                                       <option value="Dibatalkan">Cancelled</option>
+                                       <option value="Menunggu_Konfirmasi">Menunggu Konfirmasi</option>
+                                       <option value="Dikonfirmasi">Dikonfirmasi</option>
+                                       <option value="Dikirim">Dikirim</option>
+                                       <option value="Sampai">Sampai</option>
+                                       <option value="Dibatalkan">Dibatalkan</option>
                                     </select>
                                  </td>
                               </tr>

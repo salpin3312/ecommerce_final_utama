@@ -202,27 +202,17 @@ function Dashboard() {
                }
             });
 
-            // Jika data kosong (tidak ada pesanan atau untuk tahun yang dipilih), buat data dummy
-            const noRealData = Object.values(salesByMonth).every((val) => val === 0);
-            if (noRealData) {
-               months.forEach((month, index) => {
-                  // Buat pola penjualan yang lebih realistis (lebih tinggi di akhir tahun)
-                  // Menggunakan angka yang lebih besar untuk Rupiah
-                  const baseSales = 5000000 + Math.floor(Math.random() * 3000000);
-                  const seasonalFactor = 1 + (index / 12) * 0.5 + (index % 3 === 0 ? 0.2 : 0);
-                  salesByMonth[month] = Math.floor(baseSales * seasonalFactor);
-
-                  const quarter = Math.floor(index / 3);
-                  quarterSales[quarter] += salesByMonth[month];
-               });
-            }
+            // Keep zero values when there is no data; do not generate dummy sales
 
             // Konversi ke format chart
             const chartDataArray = months.map((month, index) => ({
                name: month,
                sales: salesByMonth[month],
-               profit: salesByMonth[month] * (0.25 + Math.random() * 0.15), // Profit margin bervariasi antara 25-40%
-               orders: Math.max(1, Math.floor(salesByMonth[month] / (500000 + Math.random() * 300000))), // Jumlah order
+               profit: salesByMonth[month] * (0.25 + Math.random() * 0.15),
+               orders:
+                  salesByMonth[month] > 0
+                     ? Math.max(1, Math.floor(salesByMonth[month] / (500000 + Math.random() * 300000)))
+                     : 0,
             }));
 
             // Data untuk chart kuartal
@@ -284,7 +274,11 @@ function Dashboard() {
                <p className="font-semibold text-gray-700">{payload[0].name}</p>
                <p className="text-blue-600">Sales: {formatCurrency(payload[0].value)}</p>
                <p className="text-gray-600">
-                  {Math.round((payload[0].value / quarterData.reduce((sum, q) => sum + q.value, 0)) * 100)}% of total
+                  {(() => {
+                     const total = quarterData.reduce((sum, q) => sum + q.value, 0);
+                     return total > 0 ? Math.round((payload[0].value / total) * 100) : 0;
+                  })()}
+                  % of total
                </p>
             </div>
          );
@@ -447,7 +441,11 @@ function Dashboard() {
                               fill="#8884d8"
                               dataKey="value"
                               nameKey="name"
-                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                              label={(entry) => {
+                                 const total = quarterData.reduce((sum, q) => sum + q.value, 0);
+                                 const pct = total > 0 ? ((entry.value / total) * 100).toFixed(0) : 0;
+                                 return `${entry.name} ${pct}%`;
+                              }}>
                               {quarterData.map((entry, index) => (
                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                               ))}
@@ -498,19 +496,19 @@ function Dashboard() {
                                  <td className="border px-4 py-2">
                                     <span
                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                          ${
-                             order.status === "Menunggu_Konfirmasi"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : order.status === "Diproses"
-                                ? "bg-blue-100 text-blue-800"
-                                : order.status === "Dikirim"
-                                ? "bg-green-100 text-green-800"
-                                : order.status === "Selesai"
-                                ? "bg-purple-100 text-purple-800"
-                                : order.status === "Dibatalkan"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-gray-100 text-gray-800"
-                          }`}>
+                           ${
+                              order.status === "Menunggu_Konfirmasi"
+                                 ? "bg-yellow-100 text-yellow-800"
+                                 : order.status === "Diproses"
+                                 ? "bg-blue-100 text-blue-800"
+                                 : order.status === "Dikirim"
+                                 ? "bg-green-100 text-green-800"
+                                 : order.status === "Selesai"
+                                 ? "bg-purple-100 text-purple-800"
+                                 : order.status === "Dibatalkan"
+                                 ? "bg-red-100 text-red-800"
+                                 : "bg-gray-100 text-gray-800"
+                           }`}>
                                        {order.status ? order.status.replace("_", " ") : "Pending"}
                                     </span>
                                  </td>

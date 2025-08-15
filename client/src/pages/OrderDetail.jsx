@@ -4,7 +4,7 @@ import { getOrderById, cancelOrder } from "../service/api/orderService"; // Adde
 import { toast } from "react-hot-toast";
 import { ArrowLeft, Package, Truck, CheckCircle, AlertTriangle } from "lucide-react";
 import { formatCurrency } from "../lib/lib";
-import { getPaymentStatus } from "../service/api/paymentService";
+import { getPaymentStatus as getPaymentStatusApi } from "../service/api/paymentService";
 
 function OrderDetail() {
    const { orderId } = useParams();
@@ -13,10 +13,41 @@ function OrderDetail() {
    const [checkingPayment, setCheckingPayment] = useState(false);
    const [showCancelModal, setShowCancelModal] = useState(false);
 
+   const ASSET_BASE_URL = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace(/\/api$/, "")
+      : "http://localhost:8000";
+   const getProductImageUrl = (url) => {
+      if (!url) return null;
+      if (/^https?:\/\//.test(url)) return url;
+      return `${ASSET_BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
+   };
+
    useEffect(() => {
       fetchOrderDetails();
       // eslint-disable-next-line
    }, [orderId]);
+
+   useEffect(() => {
+      // Auto-poll payment status while still pending/menunggu konfirmasi
+      if (!order) return;
+      const isPendingPayment =
+         (order.transaction && order.transaction.transactionStatus === "pending") ||
+         order.status === "Menunggu_Konfirmasi";
+
+      if (!isPendingPayment) return;
+
+      const intervalId = setInterval(async () => {
+         try {
+            await getPaymentStatusApi(order.id);
+            await fetchOrderDetails();
+         } catch (_) {
+            // silent fail
+         }
+      }, 15000); // 15s
+
+      return () => clearInterval(intervalId);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [order?.id, order?.status, order?.transaction?.transactionStatus]);
 
    const fetchOrderDetails = async () => {
       setLoading(true);
@@ -34,7 +65,7 @@ function OrderDetail() {
    const handleCheckPayment = async () => {
       setCheckingPayment(true);
       try {
-         await getPaymentStatus(order.id); // Trigger backend untuk update status transaksi & order
+         await getPaymentStatusApi(order.id); // Trigger backend untuk update status transaksi & order
          await fetchOrderDetails(); // Refresh data order
          toast.success("Status pembayaran diperbarui!");
       } catch (err) {
@@ -112,7 +143,7 @@ function OrderDetail() {
    };
 
    // Helper function to get payment status text and color
-   const getPaymentStatus = () => {
+   const getPaymentStatusDisplay = () => {
       if (order.transaction && order.transaction.transactionStatus) {
          const status = order.transaction.transactionStatus;
          if (status === "settlement" || status === "capture") {
@@ -135,6 +166,51 @@ function OrderDetail() {
          } else {
             return { text: "Belum Dibayar", color: "text-warning" };
          }
+      }
+   };
+
+   // Parse payment code/VA from Midtrans response stored in transaction
+   const getPaymentInstruction = () => {
+      if (!order?.transaction) return null;
+      try {
+         const payload = JSON.parse(order.transaction.paymentResponse || "{}");
+         const paymentType = payload.payment_type || order.transaction.paymentType;
+         const instruction = { paymentType, lines: [] };
+
+         if (paymentType === "bank_transfer") {
+            if (Array.isArray(payload.va_numbers) && payload.va_numbers.length > 0) {
+               instruction.lines = payload.va_numbers.map((va) => ({
+                  label: (va.bank || "Bank").toUpperCase(),
+                  value: va.va_number,
+               }));
+            } else if (payload.permata_va_number) {
+               instruction.lines = [{ label: "PERMATA", value: payload.permata_va_number }];
+            } else if (payload.biller_code && payload.bill_key) {
+               // Mandiri via echannel sometimes returned here
+               instruction.lines = [
+                  { label: "Biller Code", value: payload.biller_code },
+                  { label: "Bill Key", value: payload.bill_key },
+               ];
+            }
+         } else if (paymentType === "echannel") {
+            instruction.lines = [
+               { label: "Biller Code", value: payload.biller_code },
+               { label: "Bill Key", value: payload.bill_key },
+            ];
+         } else if (paymentType === "cstore") {
+            instruction.lines = [{ label: (payload.store || "Toko").toUpperCase(), value: payload.payment_code }];
+         } else if (paymentType === "qris") {
+            // Show reference if available
+            if (payload.acquirer && payload.acquirer === "gopay") {
+               instruction.lines = [{ label: "QRIS", value: "Scan QR pada aplikasi e-wallet Anda" }];
+            }
+         }
+
+         // Expiry time if provided
+         const expiry = payload.expiry_time ? new Date(payload.expiry_time) : null;
+         return { ...instruction, expiry };
+      } catch (e) {
+         return null;
       }
    };
 
@@ -242,21 +318,15 @@ function OrderDetail() {
                                        <div className="mask mask-squircle w-12 h-12">
                                           <img
                                              src={
-                                                item.product?.imageUrl
-                                                   ? `$
-                                      {
-                                        (import.meta.env.VITE_API_URL
-                                          ? import.meta.env.VITE_API_URL.replace(/\/api$/, "")
-                                          : "http://localhost:8000"
-                                        )
-                                      }${item.product.imageUrl}`
-                                                   : "https://placehold.co/300x400"
+                                                getProductImageUrl(item.product?.imageUrl) ||
+                                                "https://placehold.co/300x400"
                                              }
                                              alt={item.product?.name || "Produk"}
+                                             loading="lazy"
                                              onError={(e) => {
-                                                e.target.src = `https://placehold.co/300x400?text=${item.product?.name?.charAt(
-                                                   0
-                                                )}`;
+                                                e.target.src = `https://placehold.co/300x400?text=${
+                                                   item.product?.name?.charAt(0) || "P"
+                                                }`;
                                              }}
                                           />
                                        </div>
@@ -328,7 +398,7 @@ function OrderDetail() {
                      </div>
                      <div className="flex justify-between items-center">
                         <span>Status Pembayaran:</span>
-                        <span className={getPaymentStatus().color}>{getPaymentStatus().text}</span>
+                        <span className={getPaymentStatusDisplay().color}>{getPaymentStatusDisplay().text}</span>
                         <button
                            className="btn btn-xs btn-outline ml-2"
                            onClick={handleCheckPayment}
@@ -336,6 +406,39 @@ function OrderDetail() {
                            {checkingPayment ? "Mengecek..." : "Cek Status Pembayaran"}
                         </button>
                      </div>
+
+                     {/* Payment Code / VA for pending payments */}
+                     {order.transaction &&
+                        order.transaction.transactionStatus === "pending" &&
+                        (() => {
+                           const info = getPaymentInstruction();
+                           if (!info || !info.lines || info.lines.length === 0) return null;
+                           return (
+                              <div className="mt-4 p-3 rounded border bg-base-200">
+                                 <div className="font-semibold mb-2">Kode Pembayaran</div>
+                                 <div className="text-sm opacity-70 mb-2">Metode: {info.paymentType}</div>
+                                 <div className="space-y-2">
+                                    {info.lines.map((line, idx) => (
+                                       <div key={idx} className="flex items-center justify-between gap-2">
+                                          <div>
+                                             <div className="text-xs uppercase opacity-70">{line.label}</div>
+                                             <div className="font-mono text-base">{line.value}</div>
+                                          </div>
+                                          <button
+                                             className="btn btn-xs"
+                                             onClick={() => navigator.clipboard.writeText(String(line.value))}>
+                                             Copy
+                                          </button>
+                                       </div>
+                                    ))}
+                                 </div>
+                                 <div className="text-xs opacity-70 mt-3">
+                                    Batas waktu pembayaran:{" "}
+                                    {info.expiry ? info.expiry.toLocaleString() : "24 jam sejak dibuat"}
+                                 </div>
+                              </div>
+                           );
+                        })()}
                   </div>
                </div>
             </div>
@@ -343,17 +446,13 @@ function OrderDetail() {
 
          {/* Action Buttons */}
          <div className="mt-8 flex justify-end gap-2">
-            {order.status === "Menunggu_Konfirmasi" && (
-               <button className="btn btn-error" onClick={handleCancelOrder}>
-                  Batalkan Pesanan
-               </button>
-            )}
+            {order.status === "Menunggu_Konfirmasi" &&
+               !(order.transaction && ["settlement", "capture"].includes(order.transaction.transactionStatus)) && (
+                  <button className="btn btn-error" onClick={handleCancelOrder}>
+                     Batalkan Pesanan
+                  </button>
+               )}
             {order.status === "Dikirim" && <button className="btn btn-success">Konfirmasi Penerimaan</button>}
-            {order.status === "Sampai" && (
-               <Link to={`/review/${orderId}`} className="btn btn-primary">
-                  Beri Ulasan
-               </Link>
-            )}
          </div>
 
          {/* Cancel Order Modal */}

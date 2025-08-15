@@ -188,6 +188,15 @@ function Cart() {
       return status.replace(/_/g, " ");
    };
 
+   const getPaymentStatusDisplay = (order) => {
+      const txStatus = order?.transaction?.transactionStatus;
+      if (!txStatus) return { text: "Belum Dibayar", color: "badge-warning" };
+      if (txStatus === "settlement" || txStatus === "capture") return { text: "Sudah Dibayar", color: "badge-success" };
+      if (txStatus === "pending") return { text: "Belum Dibayar", color: "badge-warning" };
+      if (["deny", "cancel", "expire"].includes(txStatus)) return { text: "Dibatalkan", color: "badge-error" };
+      return { text: txStatus, color: "badge-ghost" };
+   };
+
    return (
       <div className="container mx-auto px-4 py-8">
          <h2 className="text-3xl font-bold mb-8">Belanjaan Kalian</h2>
@@ -324,8 +333,13 @@ function Cart() {
                            <div className="card-body">
                               <div className="flex justify-between items-center">
                                  <h3 className="card-title">Pesanan #{order.id}</h3>
-                                 <div className={`badge ${getStatusBadgeColor(order.status)} `}>
-                                    <p>{formatStatus(order.status)}</p>
+                                 <div className="flex items-center gap-2">
+                                    <div className={`badge ${getStatusBadgeColor(order.status)} `}>
+                                       <p>{formatStatus(order.status)}</p>
+                                    </div>
+                                    <div className={`badge ${getPaymentStatusDisplay(order).color}`}>
+                                       {getPaymentStatusDisplay(order).text}
+                                    </div>
                                  </div>
                               </div>
                               <p className="text-sm">
@@ -367,13 +381,17 @@ function Cart() {
                               </div>
 
                               <div className="card-actions justify-end mt-4">
-                                 {order.status === "Menunggu_Konfirmasi" && (
-                                    <button
-                                       className="btn btn-error btn-outline"
-                                       onClick={() => handleCancelOrder(order.id)}>
-                                       Batalkan
-                                    </button>
-                                 )}
+                                 {order.status === "Menunggu_Konfirmasi" &&
+                                    !(
+                                       order.transaction &&
+                                       ["settlement", "capture"].includes(order.transaction.transactionStatus)
+                                    ) && (
+                                       <button
+                                          className="btn btn-error btn-outline"
+                                          onClick={() => handleCancelOrder(order.id)}>
+                                          Batalkan
+                                       </button>
+                                    )}
                                  <Link to={`/orders/${order.id}`} className="btn btn-primary">
                                     Lihat Pesanan
                                  </Link>

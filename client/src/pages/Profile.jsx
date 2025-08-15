@@ -534,11 +534,6 @@ function Profile() {
                               </div>
                            </div>
                         )}
-
-                        <button className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
-                           <div className="font-medium text-gray-800">Verifikasi Email</div>
-                           <div className="text-sm text-gray-600">Verifikasi alamat email Anda</div>
-                        </button>
                      </div>
                   </div>
 
@@ -551,12 +546,6 @@ function Profile() {
                            onClick={() => navigate("/cart")}>
                            <div className="font-medium text-gray-800">Lihat Pesanan</div>
                            <div className="text-sm text-gray-600">Cek status dan riwayat pesanan</div>
-                        </button>
-                        <button
-                           className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
-                           onClick={() => navigate("/wishlist")}>
-                           <div className="font-medium text-gray-800">Wishlist</div>
-                           <div className="text-sm text-gray-600">Produk yang Anda sukai</div>
                         </button>
                      </div>
                   </div>

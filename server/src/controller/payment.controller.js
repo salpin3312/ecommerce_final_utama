@@ -69,7 +69,7 @@ export const handleNotification = async (req, res) => {
 
       // Verifikasi notifikasi dari Midtrans
       const statusResponse = await coreApi.transaction.notification(notification);
-      const orderId = statusResponse.order_id;
+      const orderId = String(statusResponse.order_id);
       const transactionStatus = statusResponse.transaction_status;
       const fraudStatus = statusResponse.fraud_status;
 
@@ -77,26 +77,27 @@ export const handleNotification = async (req, res) => {
          `Transaction notification received. Order ID: ${orderId}. Transaction status: ${transactionStatus}. Fraud status: ${fraudStatus}`
       );
 
-      // Cek apakah transaksi sudah ada
-      const existing = await prisma.transaction.findUnique({
-         where: { orderId },
-      });
+      // Upsert transaksi dengan aman
+      const existing = await prisma.transaction.findUnique({ where: { orderId } });
+      const numericAmount = statusResponse.gross_amount ? Number(statusResponse.gross_amount) : 0;
+
       if (existing) {
-         // Update status transaksi di database
          await prisma.transaction.update({
             where: { orderId },
             data: {
                transactionStatus,
                fraudStatus: fraudStatus || null,
                paymentResponse: JSON.stringify(statusResponse),
+               amount: isNaN(numericAmount) ? existing.amount : numericAmount,
+               paymentType: statusResponse.payment_type || existing.paymentType,
+               transactionId: statusResponse.transaction_id || existing.transactionId,
             },
          });
       } else {
-         // Jika tidak ada, buat baru
          await prisma.transaction.create({
             data: {
                orderId,
-               amount: statusResponse.gross_amount || 0,
+               amount: isNaN(numericAmount) ? 0 : numericAmount,
                paymentType: statusResponse.payment_type || "",
                transactionStatus,
                transactionId: statusResponse.transaction_id || "",
@@ -106,29 +107,28 @@ export const handleNotification = async (req, res) => {
          });
       }
 
-      // Update status order berdasarkan status transaksi
+      // Tentukan status order berdasarkan status transaksi
       let orderStatus = "Menunggu_Konfirmasi";
-
       if (transactionStatus === "capture" || transactionStatus === "settlement") {
-         orderStatus = "Sudah_Dibayar";
-      } else if (transactionStatus === "deny" || transactionStatus === "cancel" || transactionStatus === "expire") {
+         orderStatus = "Menunggu_Konfirmasi"; // jangan auto-konfirmasi
+      } else if (["deny", "cancel", "expire"].includes(transactionStatus)) {
          orderStatus = "Dibatalkan";
-      } else if (transactionStatus === "pending") {
-         orderStatus = "Menunggu_Konfirmasi";
       }
 
-      await prisma.order.update({
-         where: { id: orderId },
-         data: { status: orderStatus },
-      });
+      // Update order hanya jika ada
+      const orderExists = await prisma.order.findUnique({ where: { id: orderId } });
+      if (!orderExists) {
+         console.warn("Webhook for unknown orderId:", orderId);
+      } else {
+         await prisma.order.update({ where: { id: orderId }, data: { status: orderStatus } });
+      }
 
+      // Acknowledge sukses ke Midtrans
       return res.status(200).json({ status: true });
    } catch (error) {
       console.error("Error handling notification:", error);
-      return res.status(500).json({
-         status: false,
-         message: error.message || "Terjadi kesalahan saat memproses notifikasi",
-      });
+      // Tetap balas 200 agar Midtrans tidak retry berulang-ulang
+      return res.status(200).json({ status: true });
    }
 };
 
@@ -139,6 +139,49 @@ export const getPaymentStatus = async (req, res) => {
 
       // Get status dari Midtrans
       const statusResponse = await coreApi.transaction.status(orderId);
+      const transactionStatus = statusResponse.transaction_status;
+      const fraudStatus = statusResponse.fraud_status;
+
+      // Sinkronkan ke database (upsert transaction)
+      const existing = await prisma.transaction.findUnique({ where: { orderId } });
+      if (existing) {
+         await prisma.transaction.update({
+            where: { orderId },
+            data: {
+               transactionStatus,
+               fraudStatus: fraudStatus || null,
+               paymentResponse: JSON.stringify(statusResponse),
+               amount: statusResponse.gross_amount ? Number(statusResponse.gross_amount) : existing.amount,
+               paymentType: statusResponse.payment_type || existing.paymentType,
+               transactionId: statusResponse.transaction_id || existing.transactionId,
+            },
+         });
+      } else {
+         await prisma.transaction.create({
+            data: {
+               orderId,
+               amount: statusResponse.gross_amount ? Number(statusResponse.gross_amount) : 0,
+               paymentType: statusResponse.payment_type || "",
+               transactionStatus,
+               transactionId: statusResponse.transaction_id || "",
+               fraudStatus: fraudStatus || null,
+               paymentResponse: JSON.stringify(statusResponse),
+            },
+         });
+      }
+
+      // Update status order sesuai status transaksi menggunakan enum valid
+      let orderStatus = "Menunggu_Konfirmasi";
+      if (transactionStatus === "capture" || transactionStatus === "settlement") {
+         // Jangan auto-konfirmasi pesanan; tunggu konfirmasi admin
+         orderStatus = "Menunggu_Konfirmasi";
+      } else if (transactionStatus === "deny" || transactionStatus === "cancel" || transactionStatus === "expire") {
+         orderStatus = "Dibatalkan";
+      } else if (transactionStatus === "pending") {
+         orderStatus = "Menunggu_Konfirmasi";
+      }
+
+      await prisma.order.update({ where: { id: orderId }, data: { status: orderStatus } });
 
       return res.status(200).json({
          status: true,

@@ -16,6 +16,7 @@ export const getUserOrders = async (req, res) => {
                   product: true,
                },
             },
+            transaction: true,
          },
          orderBy: {
             createdAt: "desc",
@@ -53,6 +54,13 @@ export const getOrderById = async (req, res) => {
                },
             },
             transaction: true,
+            user: {
+               select: {
+                  id: true,
+                  name: true,
+                  email: true,
+               },
+            },
          },
       });
 
@@ -164,19 +172,8 @@ export const createOrder = async (req, res) => {
             },
          });
 
-         // Update stok produk
-         for (const item of cartItems) {
-            await prisma.product.update({
-               where: {
-                  id: item.productId,
-               },
-               data: {
-                  stock: {
-                     decrement: item.quantity,
-                  },
-               },
-            });
-         }
+         // Catatan: stok tidak dikurangi pada saat order dibuat.
+         // Stok akan dikurangi ketika admin mengubah status ke Dikonfirmasi.
 
          // Kosongkan cart
          await prisma.cart.deleteMany({
@@ -214,6 +211,7 @@ export const cancelOrder = async (req, res) => {
          },
          include: {
             orderItems: true,
+            transaction: true,
          },
       });
 
@@ -223,37 +221,23 @@ export const cancelOrder = async (req, res) => {
          });
       }
 
+      // Jika sudah ada pembayaran sukses, larang pembatalan oleh user
+      if (order.transaction && ["settlement", "capture"].includes(order.transaction.transactionStatus)) {
+         return res.status(400).json({
+            message: "Pesanan sudah dibayar dan tidak dapat dibatalkan",
+         });
+      }
+
       if (order.status !== "Menunggu_Konfirmasi") {
          return res.status(400).json({
             message: "Hanya pesanan dengan status Menunggu Konfirmasi yang dapat dibatalkan",
          });
       }
 
-      // Gunakan transaksi
-      await prisma.$transaction(async (prisma) => {
-         // Update status order
-         await prisma.order.update({
-            where: {
-               id: id,
-            },
-            data: {
-               status: "Dibatalkan",
-            },
-         });
-
-         // Kembalikan stok produk
-         for (const item of order.orderItems) {
-            await prisma.product.update({
-               where: {
-                  id: item.productId,
-               },
-               data: {
-                  stock: {
-                     increment: item.quantity,
-                  },
-               },
-            });
-         }
+      // Update status order menjadi Dibatalkan (stok belum pernah berkurang, jadi tidak perlu restock)
+      await prisma.order.update({
+         where: { id },
+         data: { status: "Dibatalkan" },
       });
 
       res.status(200).json({
@@ -294,6 +278,7 @@ export const getAllOrders = async (req, res) => {
                   product: true,
                },
             },
+            transaction: true,
          },
          orderBy: {
             createdAt: "desc",
@@ -334,9 +319,8 @@ export const updateOrderStatus = async (req, res) => {
       }
 
       const order = await prisma.order.findUnique({
-         where: {
-            id: id,
-         },
+         where: { id: id },
+         include: { orderItems: { include: { product: true } } },
       });
 
       if (!order) {
@@ -352,13 +336,40 @@ export const updateOrderStatus = async (req, res) => {
          });
       }
 
+      // Jika transisi ke Dikonfirmasi: kurangi stok (sekali saja)
+      if (status === "Dikonfirmasi" && order.status !== "Dikonfirmasi") {
+         // Validasi stok
+         for (const item of order.orderItems) {
+            if (item.quantity > item.product.stock) {
+               return res.status(400).json({
+                  message: `Stok tidak mencukupi untuk produk ${item.product.name}`,
+               });
+            }
+         }
+
+         // Kurangi stok dalam transaksi
+         await prisma.$transaction(async (tx) => {
+            // Update stok tiap produk
+            for (const item of order.orderItems) {
+               await tx.product.update({
+                  where: { id: item.productId },
+                  data: { stock: { decrement: item.quantity } },
+               });
+            }
+
+            // Update status order
+            await tx.order.update({ where: { id }, data: { status } });
+         });
+
+         return res.status(200).json({
+            message: "Status pesanan berhasil diperbarui dan stok dikurangi",
+            order: { ...order, status },
+         });
+      }
+
       const updatedOrder = await prisma.order.update({
-         where: {
-            id: id,
-         },
-         data: {
-            status: status,
-         },
+         where: { id: id },
+         data: { status: status },
       });
 
       res.status(200).json({

@@ -1,13 +1,14 @@
 import express from "express";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import {
-   getProfile,
-   updateProfile,
-   changePassword,
-   uploadAvatar,
-   getAllUsers,
-   deleteUser,
-   updateUserByAdmin,
+  getProfile,
+  updateProfile,
+  changePassword,
+  uploadAvatar,
+  getAllUsers,
+  deleteUser,
+  updateUserByAdmin,
+  createUserByAdmin,
 } from "../controller/userController.js";
 import uploadModule from "../middleware/multerMiddleware.js";
 
@@ -19,10 +20,15 @@ routerUser.use(authenticateToken);
 
 // Middleware cek admin
 function requireAdmin(req, res, next) {
-   if (req.user?.role !== "ADMIN") {
-      return res.status(403).json({ success: false, message: "Hanya admin yang boleh melakukan aksi ini." });
-   }
-   next();
+  if (req.user?.role !== "ADMIN") {
+    return res
+      .status(403)
+      .json({
+        success: false,
+        message: "Hanya admin yang boleh melakukan aksi ini.",
+      });
+  }
+  next();
 }
 
 // GET /api/user/profile - Get user profile
@@ -45,5 +51,8 @@ routerUser.delete("/:id", requireAdmin, deleteUser);
 
 // PUT /api/user/:id - Update user (admin only)
 routerUser.put("/:id", requireAdmin, updateUserByAdmin);
+
+// POST /api/user/create - Create new user (admin only)
+routerUser.post("/create", requireAdmin, createUserByAdmin);
 
 export default routerUser;

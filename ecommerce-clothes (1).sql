@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 27, 2025 at 11:32 AM
+-- Generation Time: Aug 15, 2025 at 02:48 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -63,10 +63,10 @@ CREATE TABLE `order` (
 --
 
 INSERT INTO `order` (`id`, `userId`, `name`, `phone`, `address`, `total_price`, `status`, `created_at`, `updated_at`, `shippingService`, `shippingCost`, `courier`, `etd`) VALUES
-('0948934c-be7b-4304-b684-b5b855f0e53d', 'a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'Alfin Naufal Azhali', '082128952805', 'bandung, BANDUNG, 210318', '107000.00', 'Dibatalkan', '2025-07-27 10:49:54.241', '2025-07-27 10:53:33.845', 'REG', '17000.00', 'jne', '2 day'),
-('11d7676e-501c-4e6b-8bdf-563460091000', 'a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'Alfin Naufal Azhali', '082128952805', 'bandung, BANDUNG, 082192', '107000.00', 'Dibatalkan', '2025-07-27 11:03:33.652', '2025-07-27 11:28:03.149', 'REG', '17000.00', 'jne', '2 day'),
-('2a037475-08b6-48c8-8312-513c1c3eef32', 'a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'tes 1', '082128952805', 'bandung, BANDUNG, 1739179', '107000.00', 'Dibatalkan', '2025-07-27 10:57:21.624', '2025-07-27 10:57:45.107', 'REG', '17000.00', 'jne', '2 day'),
-('2a7196aa-0ee1-4b34-a693-17e2f454ba38', 'a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'Alfin Naufal Azhali', '2019830180', 'bandung, BANDUNG, 2918391', '107000.00', 'Menunggu_Konfirmasi', '2025-07-27 11:28:26.343', '2025-07-27 11:28:26.343', 'REG', '17000.00', 'jne', '2 day');
+('51ed0182-2849-43df-8c25-3100db507a08', '15172fbd-f5bb-4386-b36f-75568981d49b', 'Rio Agustian', '08122920019809', 'Jl. Lengkong, BANDUNG, 042908', '117000.00', 'Dikonfirmasi', '2025-08-14 12:19:24.944', '2025-08-15 13:49:31.089', 'REG', '17000.00', 'jne', '2 day'),
+('966da78f-4e55-41ac-9f9a-ca1d864d457a', '15172fbd-f5bb-4386-b36f-75568981d49b', 'Alfin Naufal Azhali', '082128952805', 'Jl. Suci No. 4, BANDUNG, 40375', '224000.00', 'Sampai', '2025-08-13 13:52:09.981', '2025-08-13 14:00:32.702', 'REG', '34000.00', 'jne', '2 day'),
+('aa8d9fe0-9a0f-4dd3-aaa1-c3b5cd780959', 'a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'coba', '082112098301', 'coba, BANDUNG, 213i19', '117000.00', 'Dikonfirmasi', '2025-08-15 13:48:27.722', '2025-08-15 13:49:32.622', 'REG', '17000.00', 'jne', '2 day'),
+('ba5cb854-dca1-45a1-a8a4-14cbdc635bfa', 'a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'Alfin Naufal Azhali', '921803801809381', 'lajdlsjajl, BANDUNG, 21387189', '107000.00', 'Dikonfirmasi', '2025-08-12 12:09:59.750', '2025-08-15 13:49:28.736', 'REG', '17000.00', 'jne', '2 day');
 
 -- --------------------------------------------------------
 
@@ -87,10 +87,11 @@ CREATE TABLE `orderitem` (
 --
 
 INSERT INTO `orderitem` (`id`, `orderId`, `productId`, `quantity`, `price`) VALUES
-('15a53857-8e4e-4881-a5e9-192076d5ebdd', '11d7676e-501c-4e6b-8bdf-563460091000', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 1, '90000.00'),
-('6d142d0a-a15a-4abb-9236-e3e54b461804', '0948934c-be7b-4304-b684-b5b855f0e53d', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 1, '90000.00'),
-('702d8f28-ff44-4db3-be91-6f4b96d82dbc', '2a7196aa-0ee1-4b34-a693-17e2f454ba38', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 1, '90000.00'),
-('d41145c2-1462-4234-9d09-4d231d6fac76', '2a037475-08b6-48c8-8312-513c1c3eef32', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 1, '90000.00');
+('1acf6d94-2a39-4349-ab76-1545389cbfaf', 'aa8d9fe0-9a0f-4dd3-aaa1-c3b5cd780959', '22649900-9a17-4592-9728-86910bd8eaa4', 1, '100000.00'),
+('448a9f05-2294-47ba-a769-f09d7c39529f', '51ed0182-2849-43df-8c25-3100db507a08', '22649900-9a17-4592-9728-86910bd8eaa4', 1, '100000.00'),
+('8f84870c-d7c1-40f7-a5b9-e69b7aca79ac', 'ba5cb854-dca1-45a1-a8a4-14cbdc635bfa', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 1, '90000.00'),
+('e702572c-1bd3-41b8-97ab-63e791ad0358', '966da78f-4e55-41ac-9f9a-ca1d864d457a', '22649900-9a17-4592-9728-86910bd8eaa4', 1, '100000.00'),
+('fa7b450c-26a7-4555-bb43-4b091d264dff', '966da78f-4e55-41ac-9f9a-ca1d864d457a', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 1, '90000.00');
 
 -- --------------------------------------------------------
 
@@ -116,9 +117,9 @@ CREATE TABLE `product` (
 --
 
 INSERT INTO `product` (`id`, `name`, `description`, `price`, `stock`, `image_url`, `status`, `deleted_at`, `created_at`, `updated_at`) VALUES
-('22649900-9a17-4592-9728-86910bd8eaa4', 'Jonas', 'Baju oversize', '100000.00', 0, '/uploads/1753297020419.jpg', 'ACTIVE', NULL, '2025-07-23 18:57:00.432', '2025-07-27 10:20:26.371'),
+('22649900-9a17-4592-9728-86910bd8eaa4', 'Jonas', 'Baju oversize', '100000.00', 2, '/uploads/1753297020419.jpg', 'ACTIVE', NULL, '2025-07-23 18:57:00.432', '2025-08-15 13:49:32.589'),
 ('380301b0-a762-42ae-b96a-f15ba21a00f7', 'Jonas', 'lasjdkljajskd', '10000.00', 7, '/uploads/1753245030342.jpg', 'ARCHIVED', '2025-07-23 05:59:25.241', '2025-07-23 04:30:30.381', '2025-07-26 07:20:36.205'),
-('ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 'Screamble', 'ALjsdjasldj', '90000.00', 17, '/uploads/1753297043758.jpg', 'ACTIVE', NULL, '2025-07-23 18:57:23.765', '2025-07-27 11:28:26.353');
+('ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 'Screamble', 'ALjsdjasldj', '90000.00', 3, '/uploads/1753297043758.jpg', 'ACTIVE', NULL, '2025-07-23 18:57:23.765', '2025-08-15 13:49:28.730');
 
 -- --------------------------------------------------------
 
@@ -139,12 +140,12 @@ CREATE TABLE `productsize` (
 INSERT INTO `productsize` (`id`, `productId`, `size`) VALUES
 ('048e8a02-67da-44f0-95c9-b4a913722d08', '380301b0-a762-42ae-b96a-f15ba21a00f7', 'X'),
 ('35e31aba-837d-499a-8648-61ba0c019b05', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 'L'),
-('496813ad-8aa2-4481-a8dd-e04a6865d288', '22649900-9a17-4592-9728-86910bd8eaa4', 'S'),
+('55da950d-b434-4c11-be83-896c6fb96c89', '22649900-9a17-4592-9728-86910bd8eaa4', 'M'),
 ('5c75e9b6-4cba-4739-9b1d-b6e29394fd3a', '380301b0-a762-42ae-b96a-f15ba21a00f7', 'M'),
 ('8c21c5ee-4a82-4ea9-a2b5-19f2c3e417c0', '380301b0-a762-42ae-b96a-f15ba21a00f7', 'XL'),
+('93f77ce0-c849-4448-b85b-f12abbb8f8c8', '22649900-9a17-4592-9728-86910bd8eaa4', 'L'),
 ('a542b1e7-0f51-4d71-83e7-ab41d055176b', '380301b0-a762-42ae-b96a-f15ba21a00f7', 'L'),
-('b795c541-8bfa-42dd-adcf-55bf52fadd26', '22649900-9a17-4592-9728-86910bd8eaa4', 'L'),
-('ed4a88fd-58c9-4dc1-ae3f-16598fca1ca5', '22649900-9a17-4592-9728-86910bd8eaa4', 'M');
+('bed1fc37-cc9e-43d0-8b9b-8f2e1c188446', '22649900-9a17-4592-9728-86910bd8eaa4', 'S');
 
 -- --------------------------------------------------------
 
@@ -164,6 +165,16 @@ CREATE TABLE `transactions` (
   `createdAt` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updatedAt` datetime(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `transactions`
+--
+
+INSERT INTO `transactions` (`id`, `orderId`, `amount`, `paymentType`, `transactionStatus`, `transactionId`, `fraudStatus`, `paymentResponse`, `createdAt`, `updatedAt`) VALUES
+('06ac5ef8-a05c-4afa-93b1-5d79df99dda5', '966da78f-4e55-41ac-9f9a-ca1d864d457a', 224000, 'bank_transfer', 'settlement', 'd1e8a79c-c171-410b-bbbc-5d9ace9df1e5', 'accept', '{\"status_code\":\"200\",\"transaction_id\":\"d1e8a79c-c171-410b-bbbc-5d9ace9df1e5\",\"gross_amount\":\"224000.00\",\"currency\":\"IDR\",\"order_id\":\"966da78f-4e55-41ac-9f9a-ca1d864d457a\",\"payment_type\":\"bank_transfer\",\"signature_key\":\"557ce22c7a1a3ac89b640aa7ebfa661129e63c22b96a98a5a641915d55435b172cd7ee6e63b3da97e65426113db8d52f4e19b12bc2f3f397f370dd302359a296\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\",\"status_message\":\"Success, transaction is found\",\"merchant_id\":\"G050846848\",\"va_numbers\":[{\"bank\":\"bca\",\"va_number\":\"50846848988809769032061\"}],\"payment_amounts\":[],\"transaction_time\":\"2025-08-13 20:53:01\",\"settlement_time\":\"2025-08-13 20:53:56\",\"expiry_time\":\"2025-08-14 20:53:01\"}', '2025-08-13 13:59:11.917', '2025-08-13 13:59:27.471'),
+('209ca4d6-c3f9-48c6-a70d-14229e5a2fb5', 'aa8d9fe0-9a0f-4dd3-aaa1-c3b5cd780959', 117000, 'bank_transfer', 'settlement', 'c653ed70-71f6-4cd5-ac7f-3c9187611070', 'accept', '{\"status_code\":\"200\",\"transaction_id\":\"c653ed70-71f6-4cd5-ac7f-3c9187611070\",\"gross_amount\":\"117000.00\",\"currency\":\"IDR\",\"order_id\":\"aa8d9fe0-9a0f-4dd3-aaa1-c3b5cd780959\",\"payment_type\":\"bank_transfer\",\"signature_key\":\"d5c7adac4fd952c32f8bdaf2183ce40a36a38060b7a0b3bd65a6c437f503876a2e026cf7354eb9b541623c301edd58ddaa0c5b5da272afed46898e6f65fbda2a\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\",\"status_message\":\"Success, transaction is found\",\"merchant_id\":\"G050846848\",\"va_numbers\":[{\"bank\":\"bca\",\"va_number\":\"50846848717603838543045\"}],\"payment_amounts\":[],\"transaction_time\":\"2025-08-15 20:48:29\",\"settlement_time\":\"2025-08-15 20:49:02\",\"expiry_time\":\"2025-08-16 20:48:29\"}', '2025-08-15 13:48:47.246', '2025-08-15 13:49:03.445'),
+('8a1eedf9-afd0-4ccf-82ce-e9f814b35394', 'ba5cb854-dca1-45a1-a8a4-14cbdc635bfa', 107000, 'bank_transfer', 'settlement', '7e3e5447-3e44-49a3-9b40-69764af6066d', 'accept', '{\"status_code\":\"200\",\"transaction_id\":\"7e3e5447-3e44-49a3-9b40-69764af6066d\",\"gross_amount\":\"107000.00\",\"currency\":\"IDR\",\"order_id\":\"ba5cb854-dca1-45a1-a8a4-14cbdc635bfa\",\"payment_type\":\"bank_transfer\",\"signature_key\":\"429d0a5887f5fd77bb9d285ba025448cf142552726a75657081184cb7fe9984995a9d94d4eb0831edd8c3f2480202ae9daffde1f7c806313de462aa93d26cdf8\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\",\"status_message\":\"Success, transaction is found\",\"merchant_id\":\"G050846848\",\"va_numbers\":[{\"bank\":\"bca\",\"va_number\":\"50846848513627963549483\"}],\"payment_amounts\":[],\"transaction_time\":\"2025-08-12 19:10:01\",\"settlement_time\":\"2025-08-12 19:10:30\",\"expiry_time\":\"2025-08-13 19:10:01\"}', '2025-08-12 12:10:16.835', '2025-08-12 12:12:00.285'),
+('98801947-2915-4bd1-b719-bebad8f18df9', '51ed0182-2849-43df-8c25-3100db507a08', 117000, 'bank_transfer', 'settlement', '852a3cc8-246f-424c-b784-03d4c6882fc8', 'accept', '{\"status_code\":\"200\",\"transaction_id\":\"852a3cc8-246f-424c-b784-03d4c6882fc8\",\"gross_amount\":\"117000.00\",\"currency\":\"IDR\",\"order_id\":\"51ed0182-2849-43df-8c25-3100db507a08\",\"payment_type\":\"bank_transfer\",\"signature_key\":\"98f6ccb9f018ce857142f75126069b1d5bdc0a190d609e3653418d29c66feeb9d935c8b1493a32deab3720d6896f08a07f37c7cda4d326a7860d47296420f1df\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\",\"status_message\":\"Success, transaction is found\",\"merchant_id\":\"G050846848\",\"va_numbers\":[{\"bank\":\"bca\",\"va_number\":\"50846848778442156380442\"}],\"payment_amounts\":[],\"transaction_time\":\"2025-08-14 19:20:20\",\"settlement_time\":\"2025-08-14 19:20:41\",\"expiry_time\":\"2025-08-15 19:20:20\"}', '2025-08-14 12:20:35.164', '2025-08-14 12:38:15.187');
 
 -- --------------------------------------------------------
 
@@ -190,8 +201,9 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`id`, `name`, `email`, `password`, `role`, `created_at`, `updated_at`, `phone`, `address`, `date_of_birth`, `avatar`) VALUES
+('15172fbd-f5bb-4386-b36f-75568981d49b', 'user2', 'user2@gmail.com', '$2b$10$AGggcPHXpQ33A/oIXtRinOM7qQzWAtHReHFg2s/jW/wG/FFvGBo9K', 'USER', '2025-08-13 13:35:45.663', '2025-08-13 13:35:45.663', NULL, NULL, NULL, NULL),
 ('832ab7be-3faa-4402-91a1-320f3144fb2d', 'Admin', 'admin@gmail.com', '$2b$10$6zuIdUZpsso41.0jiMrwN.FpnwB8mFSIAT74quHJRTzwSc4uwWbMm', 'ADMIN', '2025-06-26 08:41:23.556', '2025-06-26 11:33:41.703', '08123456789', 'Jl. Contoh No. 1, Jakarta', '1990-01-01 00:00:00.000', NULL),
-('a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'user1', 'user1@gmail.com', '$2b$10$1W5ovYXfb1ZlF8qGKBmdu.B0SuTXJsj3XJhp.a96GGueQFt75ZDvm', 'USER', '2025-06-26 15:19:26.665', '2025-07-27 10:58:07.930', '082128952805', 'Bandung', '2002-10-10 00:00:00.000', '/uploads/1753542882757.png');
+('a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'contohuser', 'user1@gmail.com', '$2b$10$lA.6r83T.Q/UEFaDrh/oYuzE34oiC7X88WE.6NjWnnx7F8x39M2/q', 'USER', '2025-06-26 15:19:26.665', '2025-08-12 07:59:35.754', '082128952805', 'Bandung', '2002-10-10 00:00:00.000', '/uploads/1753542882757.png');
 
 -- --------------------------------------------------------
 

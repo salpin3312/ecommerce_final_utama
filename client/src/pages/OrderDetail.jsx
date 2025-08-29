@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getOrderById, cancelOrder } from "../service/api/orderService"; // Added cancelOrder import
+import { getOrderById, cancelOrder, confirmOrder, upsertReview } from "../service/api/orderService"; // Added confirmOrder & upsertReview
 import { toast } from "react-hot-toast";
 import { ArrowLeft, Package, Truck, CheckCircle, AlertTriangle } from "lucide-react";
 import { formatCurrency } from "../lib/lib";
@@ -12,6 +12,8 @@ function OrderDetail() {
    const [loading, setLoading] = useState(true);
    const [checkingPayment, setCheckingPayment] = useState(false);
    const [showCancelModal, setShowCancelModal] = useState(false);
+   const [review, setReview] = useState({ rating: 5, comment: "" });
+   const [savingReview, setSavingReview] = useState(false);
 
    const ASSET_BASE_URL = import.meta.env.VITE_API_URL
       ? import.meta.env.VITE_API_URL.replace(/\/api$/, "")
@@ -169,6 +171,33 @@ function OrderDetail() {
       }
    };
 
+   // Compute estimated arrival date range from createdAt and etd (e.g., "2-3")
+   const getEstimatedArrivalDates = () => {
+      try {
+         if (!order?.createdAt || !order?.etd) return null;
+         const match = String(order.etd).match(/(\d+)(?:\D+(\d+))?/);
+         if (!match) return null;
+         const minDays = parseInt(match[1], 10);
+         const maxDays = parseInt(match[2] || match[1], 10);
+         if (Number.isNaN(minDays) || Number.isNaN(maxDays)) return null;
+         const baseDate = new Date(order.createdAt);
+         const minDate = new Date(baseDate);
+         minDate.setDate(baseDate.getDate() + minDays);
+         const maxDate = new Date(baseDate);
+         maxDate.setDate(baseDate.getDate() + maxDays);
+         const opts = { year: "numeric", month: "long", day: "numeric" };
+         return {
+            text: `${minDays}${minDays !== maxDays ? `-${maxDays}` : ""} hari`,
+            range:
+               minDays === maxDays
+                  ? minDate.toLocaleDateString("id-ID", opts)
+                  : `${minDate.toLocaleDateString("id-ID", opts)} - ${maxDate.toLocaleDateString("id-ID", opts)}`,
+         };
+      } catch (_) {
+         return null;
+      }
+   };
+
    // Parse payment code/VA from Midtrans response stored in transaction
    const getPaymentInstruction = () => {
       if (!order?.transaction) return null;
@@ -270,6 +299,12 @@ function OrderDetail() {
                      </p>
                      {order.updatedAt && (
                         <p className="text-sm">Terakhir Diperbarui: {new Date(order.updatedAt).toLocaleDateString()}</p>
+                     )}
+                     {getEstimatedArrivalDates() && (
+                        <p className="text-sm mt-1">
+                           Perkiraan Tiba: {getEstimatedArrivalDates().range}
+                           <span className="opacity-70"> ({getEstimatedArrivalDates().text})</span>
+                        </p>
                      )}
                   </div>
                </div>
@@ -374,6 +409,12 @@ function OrderDetail() {
                      <p>
                         <span className="font-semibold">Estimasi:</span> {order.etd || "-"}
                      </p>
+                     {getEstimatedArrivalDates() && (
+                        <p>
+                           <span className="font-semibold">Perkiraan Tanggal Tiba:</span>{" "}
+                           {getEstimatedArrivalDates().range}
+                        </p>
+                     )}
                   </div>
                </div>
             </div>
@@ -452,7 +493,26 @@ function OrderDetail() {
                      Batalkan Pesanan
                   </button>
                )}
-            {order.status === "Dikirim" && <button className="btn btn-success">Konfirmasi Penerimaan</button>}
+            {order.status === "Dikirim" && (
+               <button
+                  className="btn btn-success"
+                  onClick={async () => {
+                     try {
+                        await confirmOrder(order.id);
+                        toast.success("Terima kasih! Pesanan dikonfirmasi sampai.");
+                        await fetchOrderDetails();
+                     } catch (_) {
+                        toast.error("Gagal konfirmasi penerimaan");
+                     }
+                  }}>
+                  Konfirmasi Penerimaan
+               </button>
+            )}
+            {order.status === "Sampai" && (!order.reviews || order.reviews.length === 0) && (
+               <button className="btn btn-primary" onClick={() => document.getElementById("review-modal").showModal()}>
+                  Tulis Ulasan
+               </button>
+            )}
          </div>
 
          {/* Cancel Order Modal */}
@@ -477,6 +537,59 @@ function OrderDetail() {
                </div>
             </div>
          )}
+         <dialog id="review-modal" className="modal">
+            <div className="modal-box">
+               <h3 className="font-bold text-lg mb-2">Tulis Ulasan</h3>
+               <div className="form-control gap-3">
+                  <label className="label">
+                     <span className="label-text">Rating</span>
+                  </label>
+                  <div className="rating">
+                     {[1, 2, 3, 4, 5].map((r) => (
+                        <input
+                           key={r}
+                           type="radio"
+                           name="rating"
+                           className="mask mask-star-2 bg-orange-400"
+                           checked={review.rating === r}
+                           onChange={() => setReview((prev) => ({ ...prev, rating: r }))}
+                        />
+                     ))}
+                  </div>
+                  <label className="label">
+                     <span className="label-text">Komentar (opsional)</span>
+                  </label>
+                  <textarea
+                     className="textarea textarea-bordered"
+                     placeholder="Tulis pengalaman Anda"
+                     value={review.comment}
+                     onChange={(e) => setReview((p) => ({ ...p, comment: e.target.value }))}
+                  />
+               </div>
+               <div className="modal-action">
+                  <form method="dialog">
+                     <button className="btn btn-ghost">Tutup</button>
+                  </form>
+                  <button
+                     className="btn btn-primary"
+                     disabled={savingReview}
+                     onClick={async () => {
+                        try {
+                           setSavingReview(true);
+                           await upsertReview(order.id, review);
+                           toast.success("Ulasan tersimpan");
+                           document.getElementById("review-modal").close();
+                        } catch (_) {
+                           toast.error("Gagal menyimpan ulasan");
+                        } finally {
+                           setSavingReview(false);
+                        }
+                     }}>
+                     {savingReview ? "Menyimpan..." : "Simpan"}
+                  </button>
+               </div>
+            </div>
+         </dialog>
       </div>
    );
 }

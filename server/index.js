@@ -13,7 +13,7 @@ const app = express();
 
 dotenv.config();
 
-const allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+const allowedOrigins = ["http://localhost:5173", "http://localhost:5174", "http://localhost:8000"];
 const corsOptions = {
    origin: function (origin, callback) {
       // Allow requests with no origin (like mobile apps, curl, etc.)

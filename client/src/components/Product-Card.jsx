@@ -62,6 +62,28 @@ function ProductCard({ product }) {
             </figure>
             <div className="card-body pb-0 cursor-pointer">
                <h2 className="card-title hover:text-primary">{product.name}</h2>
+               {typeof product.avgRating !== "undefined" && (
+                  <div className="flex items-center gap-2">
+                     <div className="rating rating-sm">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                           <input
+                              key={i}
+                              type="radio"
+                              className={`mask mask-star-2 ${
+                                 i < Math.round(product.avgRating) ? "bg-orange-400" : "bg-gray-300"
+                              }`}
+                              readOnly
+                           />
+                        ))}
+                     </div>
+                     <span className="text-xs text-gray-500">
+                        {product.avgRating?.toFixed
+                           ? product.avgRating.toFixed(1)
+                           : Number(product.avgRating || 0).toFixed(1)}
+                        {typeof product.reviewCount !== "undefined" && ` (${product.reviewCount})`}
+                     </span>
+                  </div>
+               )}
                <p className="text-lg font-semibold">{formatCurrency(formattedPrice)}</p>
                <span className="text-sm text-gray-500">
                   {product.stock > 0 ? `Stok: ${product.stock}` : "Stok: Habis"}

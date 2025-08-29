@@ -28,6 +28,7 @@ model User {
 
   carts      Cart[]
   orders     Order[]
+  reviews    Review[]
 }
 
 model Product {
@@ -85,6 +86,7 @@ model Order {
 
   orderItems OrderItem[]
   transaction Transaction? @relation("OrderTransaction")
+  reviews    Review[]
 }
 
 model OrderItem {
@@ -95,6 +97,21 @@ model OrderItem {
   productId  String
   quantity   Int
   price      Decimal  @db.Decimal(10,2)
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  order     Order    @relation(fields: [orderId], references: [id])
+  orderId   String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, orderId])
+  @@map("review")
 }
 
 model Transaction {

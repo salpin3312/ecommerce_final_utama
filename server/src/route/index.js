@@ -15,4 +15,6 @@ router.use(routerOrder);
 router.use(routerPayment);
 router.use("/user", routerUser);
 
+// Simple reviews public route aggregator is already inside order routes; also expose listing routes
+
 export default router;

@@ -24,12 +24,18 @@ const routerAuth = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - username
+ *               - name
+ *               - email
  *               - password
+ *               - role
  *             properties:
- *               username:
+ *               name:
+ *                 type: string
+ *               email:
  *                 type: string
  *               password:
+ *                 type: string
+ *               role:
  *                 type: string
  *     responses:
  *       201:
@@ -52,10 +58,10 @@ routerAuth.post("/register", register);
  *           schema:
  *             type: object
  *             required:
- *               - username
+ *               - email
  *               - password
  *             properties:
- *               username:
+ *               email:
  *                 type: string
  *               password:
  *                 type: string

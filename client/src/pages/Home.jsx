@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Truck, Phone, RefreshCcw, ShoppingCart, Star, Users, Award, Heart, Zap, Shield } from "lucide-react";
 import ProductCard from "../components/Product-Card";
 import { getAllProducts } from "../service/api/productService";
-import HomeLottie from "../components/HomeLottie";
+import logoScreamble from "../assets/logoscreamble.png";
 
 function Home() {
    const [products, setProducts] = useState([]);
@@ -46,7 +46,11 @@ function Home() {
                {/* Right Side - Enhanced Visual */}
                <div className="w-full lg:w-1/2 ms-0 lg:ms-14 relative">
                   <div className="relative transform hover:scale-105 transition-transform duration-300">
-                     <HomeLottie />
+                     <img
+                        src={logoScreamble}
+                        alt="Screamble Logo"
+                        className="w-full h-auto object-contain opacity-80 mix-blend-multiply"
+                     />
                   </div>
 
                   {/* Background Decorations */}

@@ -170,18 +170,9 @@ export const getPaymentStatus = async (req, res) => {
          });
       }
 
-      // Update status order sesuai status transaksi menggunakan enum valid
-      let orderStatus = "Menunggu_Konfirmasi";
-      if (transactionStatus === "capture" || transactionStatus === "settlement") {
-         // Jangan auto-konfirmasi pesanan; tunggu konfirmasi admin
-         orderStatus = "Menunggu_Konfirmasi";
-      } else if (transactionStatus === "deny" || transactionStatus === "cancel" || transactionStatus === "expire") {
-         orderStatus = "Dibatalkan";
-      } else if (transactionStatus === "pending") {
-         orderStatus = "Menunggu_Konfirmasi";
-      }
-
-      await prisma.order.update({ where: { id: orderId }, data: { status: orderStatus } });
+      // Penting: cek status pembayaran TIDAK mengubah status order.
+      // Order status hanya boleh berubah melalui webhook Midtrans (handleNotification)
+      // atau alur manual admin. Di sini kita hanya menyinkronkan tabel transaksi.
 
       return res.status(200).json({
          status: true,

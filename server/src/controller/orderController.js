@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js";
 import { Decimal } from "@prisma/client/runtime/library";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 // Mendapatkan semua order untuk user tertentu
 export const getUserOrders = async (req, res) => {
@@ -60,6 +61,10 @@ export const getOrderById = async (req, res) => {
                   name: true,
                   email: true,
                },
+            },
+            reviews: {
+               where: { userId: userId },
+               select: { id: true, rating: true, comment: true, createdAt: true },
             },
          },
       });
@@ -382,5 +387,108 @@ export const updateOrderStatus = async (req, res) => {
          message: "Terjadi kesalahan pada server",
          error: error.message,
       });
+   }
+};
+
+// User: Konfirmasi penerimaan (ubah Dikirim -> Sampai)
+export const confirmOrderReceipt = async (req, res) => {
+   try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const order = await prisma.order.findFirst({ where: { id, userId } });
+      if (!order) {
+         return res.status(404).json({ message: "Pesanan tidak ditemukan" });
+      }
+
+      if (order.status !== "Dikirim") {
+         return res.status(400).json({ message: "Hanya pesanan berstatus Dikirim yang bisa dikonfirmasi" });
+      }
+
+      const updated = await prisma.order.update({ where: { id }, data: { status: "Sampai" } });
+      return res.status(200).json({ message: "Pesanan dikonfirmasi diterima", order: updated });
+   } catch (error) {
+      console.error("Error saat konfirmasi penerimaan pesanan:", error);
+      return res.status(500).json({ message: "Terjadi kesalahan pada server", error: error.message });
+   }
+};
+
+// User: Buat atau perbarui ulasan untuk order yang sudah Sampai
+export const upsertReview = async (req, res) => {
+   try {
+      const userId = req.user.id;
+      const { id } = req.params; // orderId
+      const { rating, comment } = req.body;
+
+      if (!rating || rating < 1 || rating > 5) {
+         return res.status(400).json({ message: "Rating harus 1-5" });
+      }
+
+      const order = await prisma.order.findFirst({ where: { id, userId } });
+      if (!order) {
+         return res.status(404).json({ message: "Pesanan tidak ditemukan" });
+      }
+      if (order.status !== "Sampai") {
+         return res.status(400).json({ message: "Ulasan hanya bisa dibuat setelah pesanan sampai" });
+      }
+
+      const review = await prisma.review.upsert({
+         where: { userId_orderId: { userId, orderId: id } },
+         update: { rating, comment },
+         create: { userId, orderId: id, rating, comment },
+      });
+
+      return res.status(200).json({ message: "Ulasan tersimpan", review });
+   } catch (error) {
+      console.error("Error upsert review:", error);
+      return res.status(500).json({ message: "Terjadi kesalahan pada server", error: error.message });
+   }
+};
+
+// Publik: ambil ulasan terbaru
+export const listLatestReviews = async (req, res) => {
+   try {
+      const reviews = await prisma.review.findMany({
+         orderBy: { createdAt: "desc" },
+         take: 9,
+         select: {
+            id: true,
+            rating: true,
+            comment: true,
+            orderId: true,
+            userId: true,
+            createdAt: true,
+            user: { select: { name: true } },
+            order: {
+               select: {
+                  orderItems: {
+                     take: 1,
+                     select: { product: { select: { imageUrl: true, name: true } } },
+                  },
+               },
+            },
+         },
+      });
+
+      const normalized = reviews.map((rv) => ({
+         id: rv.id,
+         rating: rv.rating,
+         comment: rv.comment,
+         orderId: rv.orderId,
+         userId: rv.userId,
+         createdAt: rv.createdAt,
+         userName: rv.user?.name || null,
+         product: rv.order?.orderItems?.[0]?.product
+            ? {
+                 name: rv.order.orderItems[0].product.name,
+                 imageUrl: rv.order.orderItems[0].product.imageUrl,
+              }
+            : null,
+      }));
+
+      return res.status(200).json({ reviews: normalized });
+   } catch (error) {
+      console.error("Error list reviews:", error);
+      return res.status(500).json({ message: "Terjadi kesalahan pada server" });
    }
 };

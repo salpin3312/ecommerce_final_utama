@@ -7,9 +7,15 @@ import {
    getOrderById,
    getUserOrders,
    updateOrderStatus,
+   confirmOrderReceipt,
+   upsertReview,
+   listLatestReviews,
 } from "../controller/orderController.js";
 
 const routerOrder = express.Router();
+
+// Public: list latest reviews (tanpa auth)
+routerOrder.get("/reviews/latest", listLatestReviews);
 
 // Routes untuk user (memerlukan autentikasi)
 routerOrder.use(authenticateToken);
@@ -112,6 +118,12 @@ routerOrder.post("/orders", createOrder);
  *         description: Order not found
  */
 routerOrder.put("/orders/cancel/:id", cancelOrder);
+
+// User: Konfirmasi penerimaan order (Dikirim -> Sampai)
+routerOrder.put("/orders/confirm/:id", confirmOrderReceipt);
+
+// User: Buat/ubah ulasan untuk order yang sudah sampai
+routerOrder.put("/orders/:id/review", upsertReview);
 
 // Routes khusus admin
 /**

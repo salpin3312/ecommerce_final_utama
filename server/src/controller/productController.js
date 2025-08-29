@@ -100,8 +100,24 @@ export const getAllProducts = async (req, res) => {
          },
       });
 
+      // Ambil rata-rata rating per produk berdasarkan ulasan pada order yang berisi produk tsb
+      const productsWithRatings = await Promise.all(
+         products.map(async (product) => {
+            const agg = await prisma.review.aggregate({
+               _avg: { rating: true },
+               _count: true,
+               where: { order: { orderItems: { some: { productId: product.id } } } },
+            });
+            return {
+               ...product,
+               avgRating: agg._avg.rating ? Number(agg._avg.rating) : 0,
+               reviewCount: agg._count,
+            };
+         })
+      );
+
       // Format response untuk memudahkan konsumsi di frontend
-      const formattedProducts = products.map((product) => ({
+      const formattedProducts = productsWithRatings.map((product) => ({
          ...product,
          sizes: product.sizes.map((size) => size.size), // Ekstrak array ukuran
       }));
@@ -406,8 +422,24 @@ export const searchProducts = async (req, res) => {
          },
       });
 
+      // Ambil rata-rata rating per produk untuk hasil pencarian
+      const productsWithRatings = await Promise.all(
+         products.map(async (product) => {
+            const agg = await prisma.review.aggregate({
+               _avg: { rating: true },
+               _count: true,
+               where: { order: { orderItems: { some: { productId: product.id } } } },
+            });
+            return {
+               ...product,
+               avgRating: agg._avg.rating ? Number(agg._avg.rating) : 0,
+               reviewCount: agg._count,
+            };
+         })
+      );
+
       // Format response untuk memudahkan konsumsi di frontend
-      const formattedProducts = products.map((product) => ({
+      const formattedProducts = productsWithRatings.map((product) => ({
          ...product,
          sizes: product.sizes.map((size) => size.size),
       }));

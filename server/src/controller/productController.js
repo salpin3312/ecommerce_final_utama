@@ -150,10 +150,19 @@ export const getProductById = async (req, res) => {
          return res.status(404).json({ message: "Produk tidak ditemukan" });
       }
 
+      // Ambil rata-rata rating dan jumlah review untuk produk ini
+      const ratingAgg = await prisma.review.aggregate({
+         _avg: { rating: true },
+         _count: true,
+         where: { order: { orderItems: { some: { productId: product.id } } } },
+      });
+
       // Format response untuk memudahkan konsumsi di frontend
       const formattedProduct = {
          ...product,
          sizes: product.sizes.map((size) => size.size), // Ekstrak array ukuran
+         avgRating: ratingAgg._avg.rating ? Number(ratingAgg._avg.rating) : 0,
+         reviewCount: ratingAgg._count,
       };
 
       res.status(200).json({

@@ -117,6 +117,31 @@ function ProductDetail() {
 
             <div className="md:w-1/2">
                <h1 className="text-4xl font-bold mb-2">{product.name}</h1>
+
+               {/* Rating Display */}
+               {typeof product.avgRating !== "undefined" && (
+                  <div className="flex items-center gap-2 mb-3">
+                     <div className="rating rating-md">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                           <input
+                              key={i}
+                              type="radio"
+                              className={`mask mask-star-2 ${
+                                 i < Math.round(product.avgRating) ? "bg-orange-400" : "bg-gray-300"
+                              }`}
+                              readOnly
+                           />
+                        ))}
+                     </div>
+                     <span className="text-sm text-gray-600">
+                        {product.avgRating?.toFixed
+                           ? product.avgRating.toFixed(1)
+                           : Number(product.avgRating || 0).toFixed(1)}
+                        {typeof product.reviewCount !== "undefined" && ` (${product.reviewCount} ulasan)`}
+                     </span>
+                  </div>
+               )}
+
                <p className="text-2xl font-semibold mb-4">{formatCurrency(product.price)}</p>
 
                <div className="divider"></div>

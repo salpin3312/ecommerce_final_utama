@@ -9,9 +9,68 @@ const getImagePath = (imageUrl) => {
    return path.join(process.cwd(), "public", "uploads", filename);
 };
 
+// Helper untuk menghitung harga setelah diskon
+const calculateDiscountedPrice = (product) => {
+   if (!product.isDiscountActive || !product.discountPercentage) {
+      return product.price;
+   }
+
+   const now = new Date();
+   const startDate = new Date(product.discountStartDate);
+   const endDate = new Date(product.discountEndDate);
+
+   // Cek apakah diskon masih aktif berdasarkan tanggal
+   if (now < startDate || now > endDate) {
+      return product.price;
+   }
+
+   const discountAmount = (product.price * product.discountPercentage) / 100;
+   return product.price - discountAmount;
+};
+
+// Helper untuk mengecek status diskon
+const getDiscountStatus = (product) => {
+   if (!product.isDiscountActive || !product.discountPercentage) {
+      return { isActive: false, message: "Tidak ada diskon" };
+   }
+
+   const now = new Date();
+   const startDate = new Date(product.discountStartDate);
+   const endDate = new Date(product.discountEndDate);
+
+   if (now < startDate) {
+      return {
+         isActive: false,
+         message: `Diskon akan mulai ${startDate.toLocaleDateString("id-ID")}`,
+      };
+   }
+
+   if (now > endDate) {
+      return {
+         isActive: false,
+         message: `Diskon telah berakhir pada ${endDate.toLocaleDateString("id-ID")}`,
+      };
+   }
+
+   return {
+      isActive: true,
+      message: `Diskon aktif hingga ${endDate.toLocaleDateString("id-ID")}`,
+   };
+};
+
 export const addProduct = async (req, res) => {
    try {
-      const { name, description, price, sizes, stock } = req.body;
+      const {
+         name,
+         description,
+         price,
+         sizes,
+         stock,
+         discountPercentage,
+         discountStartDate,
+         discountEndDate,
+         isDiscountActive,
+      } = req.body;
       const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
       // Validasi input agar tidak kosong
@@ -25,6 +84,33 @@ export const addProduct = async (req, res) => {
 
       if (Number.isNaN(priceFloat) || Number.isNaN(stockInt)) {
          return res.status(400).json({ message: "Harga dan stok harus berupa angka!" });
+      }
+
+      // Validasi diskon
+      let discountData = {};
+      if (discountPercentage && isDiscountActive === "true") {
+         const discountPercent = parseFloat(discountPercentage);
+         if (Number.isNaN(discountPercent) || discountPercent < 0 || discountPercent > 100) {
+            return res.status(400).json({ message: "Persentase diskon harus antara 0-100!" });
+         }
+
+         if (!discountStartDate || !discountEndDate) {
+            return res.status(400).json({ message: "Tanggal mulai dan selesai diskon harus diisi!" });
+         }
+
+         const startDate = new Date(discountStartDate);
+         const endDate = new Date(discountEndDate);
+
+         if (startDate >= endDate) {
+            return res.status(400).json({ message: "Tanggal selesai diskon harus setelah tanggal mulai!" });
+         }
+
+         discountData = {
+            discountPercentage: discountPercent,
+            discountStartDate: startDate,
+            discountEndDate: endDate,
+            isDiscountActive: true,
+         };
       }
 
       // Parsing sizes dari string menjadi array jika diperlukan
@@ -43,6 +129,7 @@ export const addProduct = async (req, res) => {
                price: priceFloat,
                stock: stockInt,
                imageUrl,
+               ...discountData,
             },
          });
 
@@ -65,7 +152,18 @@ export const addProduct = async (req, res) => {
          });
       });
 
-      res.status(201).json({ message: "Produk berhasil ditambahkan", product });
+      // Format response dengan informasi diskon
+      const discountStatus = getDiscountStatus(product);
+      const discountedPrice = calculateDiscountedPrice(product);
+
+      const formattedProduct = {
+         ...product,
+         discountStatus,
+         discountedPrice: Number(discountedPrice),
+         hasActiveDiscount: discountStatus.isActive,
+      };
+
+      res.status(201).json({ message: "Produk berhasil ditambahkan", product: formattedProduct });
    } catch (error) {
       console.error("Error saat menambahkan produk:", error);
       res.status(500).json({ message: "Terjadi kesalahan pada server", error: error.message });
@@ -100,27 +198,49 @@ export const getAllProducts = async (req, res) => {
          },
       });
 
-      // Ambil rata-rata rating per produk berdasarkan ulasan pada order yang berisi produk tsb
+      // Ambil rata-rata rating dan jumlah terjual per produk
       const productsWithRatings = await Promise.all(
          products.map(async (product) => {
+            // Hitung rata-rata rating
             const agg = await prisma.review.aggregate({
                _avg: { rating: true },
                _count: true,
                where: { order: { orderItems: { some: { productId: product.id } } } },
             });
+
+            // Hitung jumlah terjual dari OrderItem (hanya pesanan yang sudah sampai)
+            const soldAgg = await prisma.orderItem.aggregate({
+               _sum: { quantity: true },
+               where: {
+                  productId: product.id,
+                  order: {
+                     status: "Sampai", // Hanya pesanan yang sudah sampai
+                  },
+               },
+            });
+
             return {
                ...product,
                avgRating: agg._avg.rating ? Number(agg._avg.rating) : 0,
                reviewCount: agg._count,
+               soldCount: soldAgg._sum.quantity ? Number(soldAgg._sum.quantity) : 0,
             };
          })
       );
 
       // Format response untuk memudahkan konsumsi di frontend
-      const formattedProducts = productsWithRatings.map((product) => ({
-         ...product,
-         sizes: product.sizes.map((size) => size.size), // Ekstrak array ukuran
-      }));
+      const formattedProducts = productsWithRatings.map((product) => {
+         const discountStatus = getDiscountStatus(product);
+         const discountedPrice = calculateDiscountedPrice(product);
+
+         return {
+            ...product,
+            sizes: product.sizes.map((size) => size.size), // Ekstrak array ukuran
+            discountStatus,
+            discountedPrice: Number(discountedPrice),
+            hasActiveDiscount: discountStatus.isActive,
+         };
+      });
 
       res.status(200).json({
          message: "Berhasil mengambil data produk",
@@ -150,19 +270,37 @@ export const getProductById = async (req, res) => {
          return res.status(404).json({ message: "Produk tidak ditemukan" });
       }
 
-      // Ambil rata-rata rating dan jumlah review untuk produk ini
+      // Ambil rata-rata rating, jumlah review, dan jumlah terjual untuk produk ini
       const ratingAgg = await prisma.review.aggregate({
          _avg: { rating: true },
          _count: true,
          where: { order: { orderItems: { some: { productId: product.id } } } },
       });
 
+      // Hitung jumlah terjual dari OrderItem (hanya pesanan yang sudah sampai)
+      const soldAgg = await prisma.orderItem.aggregate({
+         _sum: { quantity: true },
+         where: {
+            productId: product.id,
+            order: {
+               status: "Sampai", // Hanya pesanan yang sudah sampai
+            },
+         },
+      });
+
       // Format response untuk memudahkan konsumsi di frontend
+      const discountStatus = getDiscountStatus(product);
+      const discountedPrice = calculateDiscountedPrice(product);
+
       const formattedProduct = {
          ...product,
          sizes: product.sizes.map((size) => size.size), // Ekstrak array ukuran
          avgRating: ratingAgg._avg.rating ? Number(ratingAgg._avg.rating) : 0,
          reviewCount: ratingAgg._count,
+         soldCount: soldAgg._sum.quantity ? Number(soldAgg._sum.quantity) : 0,
+         discountStatus,
+         discountedPrice: Number(discountedPrice),
+         hasActiveDiscount: discountStatus.isActive,
       };
 
       res.status(200).json({
@@ -179,7 +317,17 @@ export const getProductById = async (req, res) => {
 export const updateProduct = async (req, res) => {
    try {
       const { id } = req.params;
-      const { name, description, price, sizes, stock } = req.body;
+      const {
+         name,
+         description,
+         price,
+         sizes,
+         stock,
+         discountPercentage,
+         discountStartDate,
+         discountEndDate,
+         isDiscountActive,
+      } = req.body;
       const newImageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
 
       // Cek produk yang akan diupdate
@@ -206,6 +354,42 @@ export const updateProduct = async (req, res) => {
          stockInt = parseInt(stock, 10);
          if (Number.isNaN(stockInt)) {
             return res.status(400).json({ message: "Stok harus berupa angka!" });
+         }
+      }
+
+      // Validasi diskon
+      let discountData = {};
+      if (discountPercentage !== undefined || isDiscountActive !== undefined) {
+         if (isDiscountActive === "true" && discountPercentage) {
+            const discountPercent = parseFloat(discountPercentage);
+            if (Number.isNaN(discountPercent) || discountPercent < 0 || discountPercent > 100) {
+               return res.status(400).json({ message: "Persentase diskon harus antara 0-100!" });
+            }
+
+            if (!discountStartDate || !discountEndDate) {
+               return res.status(400).json({ message: "Tanggal mulai dan selesai diskon harus diisi!" });
+            }
+
+            const startDate = new Date(discountStartDate);
+            const endDate = new Date(discountEndDate);
+
+            if (startDate >= endDate) {
+               return res.status(400).json({ message: "Tanggal selesai diskon harus setelah tanggal mulai!" });
+            }
+
+            discountData = {
+               discountPercentage: discountPercent,
+               discountStartDate: startDate,
+               discountEndDate: endDate,
+               isDiscountActive: true,
+            };
+         } else if (isDiscountActive === "false") {
+            discountData = {
+               discountPercentage: null,
+               discountStartDate: null,
+               discountEndDate: null,
+               isDiscountActive: false,
+            };
          }
       }
 
@@ -239,6 +423,7 @@ export const updateProduct = async (req, res) => {
                price: priceFloat || undefined,
                stock: stockInt || undefined,
                imageUrl: newImageUrl || undefined,
+               ...discountData,
             },
          });
 
@@ -270,9 +455,15 @@ export const updateProduct = async (req, res) => {
       });
 
       // Format response untuk memudahkan konsumsi di frontend
+      const discountStatus = getDiscountStatus(updatedProduct);
+      const discountedPrice = calculateDiscountedPrice(updatedProduct);
+
       const formattedProduct = {
          ...updatedProduct,
          sizes: updatedProduct.sizes.map((size) => size.size),
+         discountStatus,
+         discountedPrice: Number(discountedPrice),
+         hasActiveDiscount: discountStatus.isActive,
       };
 
       res.status(200).json({
@@ -431,27 +622,49 @@ export const searchProducts = async (req, res) => {
          },
       });
 
-      // Ambil rata-rata rating per produk untuk hasil pencarian
+      // Ambil rata-rata rating dan jumlah terjual per produk untuk hasil pencarian
       const productsWithRatings = await Promise.all(
          products.map(async (product) => {
+            // Hitung rata-rata rating
             const agg = await prisma.review.aggregate({
                _avg: { rating: true },
                _count: true,
                where: { order: { orderItems: { some: { productId: product.id } } } },
             });
+
+            // Hitung jumlah terjual dari OrderItem (hanya pesanan yang sudah sampai)
+            const soldAgg = await prisma.orderItem.aggregate({
+               _sum: { quantity: true },
+               where: {
+                  productId: product.id,
+                  order: {
+                     status: "Sampai", // Hanya pesanan yang sudah sampai
+                  },
+               },
+            });
+
             return {
                ...product,
                avgRating: agg._avg.rating ? Number(agg._avg.rating) : 0,
                reviewCount: agg._count,
+               soldCount: soldAgg._sum.quantity ? Number(soldAgg._sum.quantity) : 0,
             };
          })
       );
 
       // Format response untuk memudahkan konsumsi di frontend
-      const formattedProducts = productsWithRatings.map((product) => ({
-         ...product,
-         sizes: product.sizes.map((size) => size.size),
-      }));
+      const formattedProducts = productsWithRatings.map((product) => {
+         const discountStatus = getDiscountStatus(product);
+         const discountedPrice = calculateDiscountedPrice(product);
+
+         return {
+            ...product,
+            sizes: product.sizes.map((size) => size.size),
+            discountStatus,
+            discountedPrice: Number(discountedPrice),
+            hasActiveDiscount: discountStatus.isActive,
+         };
+      });
 
       res.status(200).json({
          message: "Pencarian berhasil",
@@ -460,6 +673,106 @@ export const searchProducts = async (req, res) => {
       });
    } catch (error) {
       console.error("Error saat mencari produk:", error);
+      res.status(500).json({ message: "Terjadi kesalahan pada server", error: error.message });
+   }
+};
+
+// Fungsi untuk mendapatkan produk unggulan berdasarkan filter waktu
+export const getFeaturedProducts = async (req, res) => {
+   try {
+      const { period = "month" } = req.query; // period: today, week, month, year
+
+      // Hitung tanggal awal berdasarkan periode
+      const now = new Date();
+      let startDate;
+
+      switch (period) {
+         case "today":
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            break;
+         case "week":
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+         case "month":
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            break;
+         case "year":
+            startDate = new Date(now.getFullYear(), 0, 1);
+            break;
+         default:
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+
+      // Ambil semua produk aktif
+      const products = await prisma.product.findMany({
+         where: {
+            status: "ACTIVE",
+         },
+         include: {
+            sizes: true,
+         },
+      });
+
+      // Hitung jumlah terjual per produk dalam periode tertentu
+      const productsWithSales = await Promise.all(
+         products.map(async (product) => {
+            // Hitung rata-rata rating
+            const agg = await prisma.review.aggregate({
+               _avg: { rating: true },
+               _count: true,
+               where: { order: { orderItems: { some: { productId: product.id } } } },
+            });
+
+            // Hitung jumlah terjual dalam periode tertentu (hanya pesanan yang sudah sampai)
+            const soldAgg = await prisma.orderItem.aggregate({
+               _sum: { quantity: true },
+               where: {
+                  productId: product.id,
+                  order: {
+                     status: "Sampai",
+                     createdAt: {
+                        gte: startDate,
+                     },
+                  },
+               },
+            });
+
+            return {
+               ...product,
+               avgRating: agg._avg.rating ? Number(agg._avg.rating) : 0,
+               reviewCount: agg._count,
+               soldCount: soldAgg._sum.quantity ? Number(soldAgg._sum.quantity) : 0,
+            };
+         })
+      );
+
+      // Filter produk yang memiliki penjualan dan urutkan berdasarkan jumlah terjual
+      const featuredProducts = productsWithSales
+         .filter((product) => product.soldCount > 0)
+         .sort((a, b) => b.soldCount - a.soldCount)
+         .slice(0, 8); // Ambil 8 produk teratas
+
+      // Format response untuk memudahkan konsumsi di frontend
+      const formattedProducts = featuredProducts.map((product) => {
+         const discountStatus = getDiscountStatus(product);
+         const discountedPrice = calculateDiscountedPrice(product);
+
+         return {
+            ...product,
+            sizes: product.sizes.map((size) => size.size),
+            discountStatus,
+            discountedPrice: Number(discountedPrice),
+            hasActiveDiscount: discountStatus.isActive,
+         };
+      });
+
+      res.status(200).json({
+         message: "Berhasil mengambil produk unggulan",
+         period,
+         products: formattedProducts,
+      });
+   } catch (error) {
+      console.error("Error saat mengambil produk unggulan:", error);
       res.status(500).json({ message: "Terjadi kesalahan pada server", error: error.message });
    }
 };
@@ -502,9 +815,15 @@ export const updateProductStatus = async (req, res) => {
       });
 
       // Format response untuk memudahkan konsumsi di frontend
+      const discountStatus = getDiscountStatus(updatedProduct);
+      const discountedPrice = calculateDiscountedPrice(updatedProduct);
+
       const formattedProduct = {
          ...updatedProduct,
          sizes: updatedProduct.sizes.map((size) => size.size),
+         discountStatus,
+         discountedPrice: Number(discountedPrice),
+         hasActiveDiscount: discountStatus.isActive,
       };
 
       res.status(200).json({

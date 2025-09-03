@@ -162,8 +162,11 @@ function Cart() {
       setOrderToCancel(null);
    };
 
-   // Calculate total price
-   const total = cartItems.reduce((sum, item) => sum + (item.product?.price || 0) * (item.quantity || 0), 0);
+   // Calculate total price with discount consideration
+   const total = cartItems.reduce((sum, item) => {
+      const price = item.product?.hasActiveDiscount ? item.product?.discountedPrice : item.product?.price;
+      return sum + (price || 0) * (item.quantity || 0);
+   }, 0);
 
    // Helper function to get status badge color
    const getStatusBadgeColor = (status) => {
@@ -256,7 +259,25 @@ function Cart() {
                               </figure>
                               <div className="card-body">
                                  <h2 className="card-title">{item.product?.name || "Product"}</h2>
-                                 <p>{formatCurrency(item.product?.price || 0)}</p>
+                                 <div className="flex items-center gap-2 flex-wrap">
+                                    {item.product?.hasActiveDiscount ? (
+                                       <div className="flex items-center gap-2">
+                                          <p className="text-lg font-semibold text-green-600">
+                                             {formatCurrency(item.product?.discountedPrice || 0)}
+                                          </p>
+                                          <p className="text-sm text-gray-500 line-through">
+                                             {formatCurrency(item.product?.price || 0)}
+                                          </p>
+                                          <span className="badge badge-error text-xs">
+                                             -{item.product?.discountPercentage}%
+                                          </span>
+                                       </div>
+                                    ) : (
+                                       <p className="text-lg font-semibold">
+                                          {formatCurrency(item.product?.price || 0)}
+                                       </p>
+                                    )}
+                                 </div>
                                  <p>Size: {item.size || "Standard"}</p>
                                  <div className="flex items-center gap-4">
                                     <div className="join">
@@ -354,14 +375,31 @@ function Cart() {
                                           <div className="flex-grow">
                                              <p className="font-semibold">{item.product?.name || "Product"}</p>
                                              <p className="text-sm">
-                                                {item.quantity || 0} × Rp. {(item.product?.price || 0).toLocaleString()}
+                                                {item.quantity || 0} ×{" "}
+                                                {item.product?.hasActiveDiscount ? (
+                                                   <>
+                                                      <span className="text-green-600 font-semibold">
+                                                         Rp. {(item.product?.discountedPrice || 0).toLocaleString()}
+                                                      </span>
+                                                      <span className="text-gray-500 line-through ml-1">
+                                                         Rp. {(item.product?.price || 0).toLocaleString()}
+                                                      </span>
+                                                   </>
+                                                ) : (
+                                                   `Rp. ${(item.product?.price || 0).toLocaleString()}`
+                                                )}
                                                 {item.size && ` - Size: ${item.size}`}
                                              </p>
                                           </div>
                                           <div className="text-right">
                                              <p className="font-bold">
                                                 Rp.{" "}
-                                                {((item.product?.price || 0) * (item.quantity || 0)).toLocaleString()}
+                                                {(() => {
+                                                   const price = item.product?.hasActiveDiscount
+                                                      ? item.product?.discountedPrice
+                                                      : item.product?.price;
+                                                   return ((price || 0) * (item.quantity || 0)).toLocaleString();
+                                                })()}
                                              </p>
                                           </div>
                                        </div>

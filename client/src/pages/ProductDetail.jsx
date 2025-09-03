@@ -96,7 +96,16 @@ function ProductDetail() {
          </Link>
 
          <div className="flex flex-col md:flex-row gap-8">
-            <div className="md:w-1/2">
+            <div className="md:w-1/2 relative">
+               {/* Discount Badge */}
+               {product.hasActiveDiscount && (
+                  <div className="absolute top-4 left-4 z-10">
+                     <div className="bg-red-500 text-white px-4 py-2 rounded-lg text-xl font-bold shadow-lg">
+                        -{product.discountPercentage}%
+                     </div>
+                  </div>
+               )}
+
                {product.imageUrl ? (
                   <img
                      src={`${import.meta.env.VITE_API_URL?.replace(/\/api$/, "") || "http://localhost:8000"}${
@@ -142,16 +151,39 @@ function ProductDetail() {
                   </div>
                )}
 
-               <p className="text-2xl font-semibold mb-4">{formatCurrency(product.price)}</p>
+               {/* Price Display with Discount */}
+               <div className="mb-4">
+                  {product.hasActiveDiscount ? (
+                     <>
+                        <div className="flex items-center gap-3">
+                           <p className="text-3xl font-bold text-green-600">
+                              {formatCurrency(product.discountedPrice)}
+                           </p>
+                           <p className="text-xl text-gray-500 line-through">{formatCurrency(product.price)}</p>
+                           <span className="badge badge-error text-lg px-3 py-2">-{product.discountPercentage}%</span>
+                        </div>
+                        {product.discountStatus && (
+                           <p className="text-sm text-green-600 font-medium mt-2">{product.discountStatus.message}</p>
+                        )}
+                     </>
+                  ) : (
+                     <p className="text-2xl font-semibold">{formatCurrency(product.price)}</p>
+                  )}
+               </div>
 
                <div className="divider"></div>
 
                <div className="mb-6">
                   <h3 className="text-lg font-semibold mb-2">Description</h3>
                   <p className="text-gray-600">{product.description || "No description available."}</p>
-                  <span className="text-sm text-gray-500">
-                     {product.stock > 0 ? `Stok: ${product.stock}` : "Stok: Habis"}
-                  </span>
+                  <div className="flex items-center justify-between mt-2">
+                     <span className="text-sm text-gray-500">
+                        {product.stock > 0 ? `Stok: ${product.stock}` : "Stok: Habis"}
+                     </span>
+                     {product.soldCount > 0 && (
+                        <span className="text-sm text-green-600 font-medium">Terjual: {product.soldCount}</span>
+                     )}
+                  </div>
                </div>
 
                {hasSizes && (

@@ -63,6 +63,16 @@ export const addProduct = async (productData) => {
          formData.append("sizes", productData.sizes);
       }
 
+      // Tambahkan data diskon
+      if (productData.isDiscountActive) {
+         formData.append("discountPercentage", productData.discountPercentage);
+         formData.append("discountStartDate", productData.discountStartDate);
+         formData.append("discountEndDate", productData.discountEndDate);
+         formData.append("isDiscountActive", "true");
+      } else {
+         formData.append("isDiscountActive", "false");
+      }
+
       // Tambahkan gambar jika ada
       if (productData.image) {
          formData.append("image", productData.image);
@@ -98,6 +108,17 @@ export const updateProduct = async (id, productData) => {
             formData.append("sizes", productData.sizes.join(","));
          } else {
             formData.append("sizes", productData.sizes);
+         }
+      }
+
+      // Tambahkan data diskon
+      if (productData.isDiscountActive !== undefined) {
+         formData.append("isDiscountActive", productData.isDiscountActive.toString());
+
+         if (productData.isDiscountActive) {
+            if (productData.discountPercentage) formData.append("discountPercentage", productData.discountPercentage);
+            if (productData.discountStartDate) formData.append("discountStartDate", productData.discountStartDate);
+            if (productData.discountEndDate) formData.append("discountEndDate", productData.discountEndDate);
          }
       }
 
@@ -139,6 +160,16 @@ export const deleteProduct = async (id, forceDelete = false) => {
       }
 
       const response = await axiosInstance.delete(url);
+      return response.data;
+   } catch (error) {
+      throw error;
+   }
+};
+
+// Mendapatkan produk unggulan berdasarkan periode waktu
+export const getFeaturedProducts = async (period = "month") => {
+   try {
+      const response = await axiosInstance.get(`/api/products/featured?period=${period}`);
       return response.data;
    } catch (error) {
       throw error;

@@ -1,5 +1,53 @@
 import prisma from "../config/prisma.js";
 
+// Helper function untuk menghitung harga diskon
+const calculateDiscountedPrice = (product) => {
+   if (!product.isDiscountActive || !product.discountPercentage) {
+      return product.price;
+   }
+
+   const now = new Date();
+   const startDate = new Date(product.discountStartDate);
+   const endDate = new Date(product.discountEndDate);
+
+   if (now < startDate || now > endDate) {
+      return product.price;
+   }
+
+   const discountAmount = (product.price * product.discountPercentage) / 100;
+   return product.price - discountAmount;
+};
+
+// Helper function untuk mendapatkan status diskon
+const getDiscountStatus = (product) => {
+   if (!product.isDiscountActive || !product.discountPercentage) {
+      return { isActive: false, message: "Tidak ada diskon" };
+   }
+
+   const now = new Date();
+   const startDate = new Date(product.discountStartDate);
+   const endDate = new Date(product.discountEndDate);
+
+   if (now < startDate) {
+      return {
+         isActive: false,
+         message: `Diskon akan mulai ${startDate.toLocaleDateString("id-ID")}`,
+      };
+   }
+
+   if (now > endDate) {
+      return {
+         isActive: false,
+         message: `Diskon telah berakhir pada ${endDate.toLocaleDateString("id-ID")}`,
+      };
+   }
+
+   return {
+      isActive: true,
+      message: `Diskon aktif hingga ${endDate.toLocaleDateString("id-ID")}`,
+   };
+};
+
 // Mendapatkan semua cart items untuk user tertentu
 export const getUserCart = async (req, res) => {
    try {
@@ -18,9 +66,25 @@ export const getUserCart = async (req, res) => {
          },
       });
 
+      // Tambahkan informasi diskon ke setiap item
+      const cartItemsWithDiscount = cartItems.map((item) => {
+         const discountStatus = getDiscountStatus(item.product);
+         const discountedPrice = calculateDiscountedPrice(item.product);
+
+         return {
+            ...item,
+            product: {
+               ...item.product,
+               discountStatus,
+               discountedPrice: Number(discountedPrice),
+               hasActiveDiscount: discountStatus.isActive,
+            },
+         };
+      });
+
       res.status(200).json({
          message: "Berhasil mengambil data keranjang",
-         cart: cartItems,
+         cart: cartItemsWithDiscount,
       });
    } catch (error) {
       console.error("Error saat mengambil data keranjang:", error);
@@ -121,9 +185,23 @@ export const addToCart = async (req, res) => {
          });
       }
 
+      // Tambahkan informasi diskon ke cart item
+      const discountStatus = getDiscountStatus(cartItem.product);
+      const discountedPrice = calculateDiscountedPrice(cartItem.product);
+
+      const cartItemWithDiscount = {
+         ...cartItem,
+         product: {
+            ...cartItem.product,
+            discountStatus,
+            discountedPrice: Number(discountedPrice),
+            hasActiveDiscount: discountStatus.isActive,
+         },
+      };
+
       res.status(201).json({
          message: "Produk berhasil ditambahkan ke keranjang",
-         cart: cartItem,
+         cart: cartItemWithDiscount,
       });
    } catch (error) {
       console.error("Error saat menambahkan ke keranjang:", error);
@@ -204,9 +282,23 @@ export const updateCartItem = async (req, res) => {
          },
       });
 
+      // Tambahkan informasi diskon ke cart item
+      const discountStatus = getDiscountStatus(updatedCartItem.product);
+      const discountedPrice = calculateDiscountedPrice(updatedCartItem.product);
+
+      const updatedCartItemWithDiscount = {
+         ...updatedCartItem,
+         product: {
+            ...updatedCartItem.product,
+            discountStatus,
+            discountedPrice: Number(discountedPrice),
+            hasActiveDiscount: discountStatus.isActive,
+         },
+      };
+
       res.status(200).json({
          message: "Item keranjang berhasil diupdate",
-         cart: updatedCartItem,
+         cart: updatedCartItemWithDiscount,
       });
    } catch (error) {
       console.error("Error saat mengupdate item keranjang:", error);

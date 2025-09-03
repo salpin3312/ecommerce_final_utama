@@ -187,8 +187,13 @@ function Checkout() {
       ? provinces.filter((province) => province.name.toLowerCase().includes(provinceInput.toLowerCase()))
       : [];
 
-   // Menghitung total
-   const total = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+   // Menghitung total dengan diskon
+   const total = cartItems.reduce((sum, item) => {
+      const itemPrice = item.product?.hasActiveDiscount
+         ? item.product?.discountedPrice || item.product?.price || 0
+         : item.product?.price || 0;
+      return sum + itemPrice * item.quantity;
+   }, 0);
 
    const handleSubmit = async (e) => {
       e.preventDefault();
@@ -235,12 +240,16 @@ function Checkout() {
             throw new Error("Gagal membuat pesanan");
          }
 
-         // Siapkan data untuk midtrans
+         // Siapkan data untuk midtrans dengan diskon
          const itemDetails = [
             ...cartItems.map((item) => ({
                id: item.product.id,
                name: item.product.name,
-               price: Number(item.product.price),
+               price: Number(
+                  item.product?.hasActiveDiscount
+                     ? item.product?.discountedPrice || item.product?.price || 0
+                     : item.product?.price || 0
+               ),
                quantity: Number(item.quantity),
                category: "Clothing",
             })),
@@ -581,13 +590,58 @@ function Checkout() {
                               <p className="text-sm text-gray-600">
                                  Size: {item.size || "Standard"}, Qty: {item.quantity}
                               </p>
+                              {item.product?.hasActiveDiscount && (
+                                 <p className="text-xs text-green-600 font-medium">
+                                    🔥 Diskon {item.product.discountPercentage}%
+                                 </p>
+                              )}
                            </div>
-                           <p className="font-medium">Rp. {(item.product.price * item.quantity).toLocaleString()}</p>
+                           <div className="text-right">
+                              {item.product?.hasActiveDiscount ? (
+                                 <div>
+                                    <p className="font-medium text-green-600">
+                                       Rp.{" "}
+                                       {(
+                                          (item.product.discountedPrice || item.product.price) * item.quantity
+                                       ).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-gray-500 line-through">
+                                       Rp. {(item.product.price * item.quantity).toLocaleString()}
+                                    </p>
+                                 </div>
+                              ) : (
+                                 <p className="font-medium">
+                                    Rp. {(item.product.price * item.quantity).toLocaleString()}
+                                 </p>
+                              )}
+                           </div>
                         </div>
                      ))}
                   </div>
 
                   <div className="border-t mt-4 pt-4">
+                     {/* Discount Information */}
+                     {(() => {
+                        const discountItems = cartItems.filter((item) => item.product?.hasActiveDiscount);
+                        if (discountItems.length > 0) {
+                           const originalTotal = cartItems.reduce(
+                              (sum, item) => sum + item.product.price * item.quantity,
+                              0
+                           );
+                           const discountAmount = originalTotal - total;
+                           return (
+                              <div className="mb-3 p-2 bg-green-50 rounded border border-green-200">
+                                 <div className="flex justify-between text-sm">
+                                    <span className="text-green-700">Total Diskon:</span>
+                                    <span className="text-green-700 font-medium">
+                                       -Rp. {discountAmount.toLocaleString()}
+                                    </span>
+                                 </div>
+                              </div>
+                           );
+                        }
+                        return null;
+                     })()}
                      <div className="flex justify-between">
                         <p>Ongkir</p>
                         <p>Rp. {shippingCost.toLocaleString()}</p>

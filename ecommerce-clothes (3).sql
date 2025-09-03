@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 15, 2025 at 02:48 PM
+-- Generation Time: Aug 30, 2025 at 07:10 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -36,6 +36,13 @@ CREATE TABLE `cart` (
   `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `cart`
+--
+
+INSERT INTO `cart` (`id`, `userId`, `productId`, `size`, `quantity`, `created_at`) VALUES
+('c9157e1d-c340-45ac-8f61-7643f7337ecf', '15172fbd-f5bb-4386-b36f-75568981d49b', '22649900-9a17-4592-9728-86910bd8eaa4', 'S', 1, '2025-08-29 11:37:45.896');
+
 -- --------------------------------------------------------
 
 --
@@ -49,7 +56,7 @@ CREATE TABLE `order` (
   `phone` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `address` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `total_price` decimal(10,2) NOT NULL,
-  `status` enum('Menunggu_Konfirmasi','Dikonfirmasi','Dikirim','Sampai','Dibatalkan') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Menunggu_Konfirmasi',
+  `status` enum('Menunggu_Konfirmasi','Dikonfirmasi','Dikirim','Sampai','Dibatalkan') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Menunggu_Konfirmasi',
   `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updated_at` datetime(3) NOT NULL,
   `shippingService` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -63,10 +70,8 @@ CREATE TABLE `order` (
 --
 
 INSERT INTO `order` (`id`, `userId`, `name`, `phone`, `address`, `total_price`, `status`, `created_at`, `updated_at`, `shippingService`, `shippingCost`, `courier`, `etd`) VALUES
-('51ed0182-2849-43df-8c25-3100db507a08', '15172fbd-f5bb-4386-b36f-75568981d49b', 'Rio Agustian', '08122920019809', 'Jl. Lengkong, BANDUNG, 042908', '117000.00', 'Dikonfirmasi', '2025-08-14 12:19:24.944', '2025-08-15 13:49:31.089', 'REG', '17000.00', 'jne', '2 day'),
-('966da78f-4e55-41ac-9f9a-ca1d864d457a', '15172fbd-f5bb-4386-b36f-75568981d49b', 'Alfin Naufal Azhali', '082128952805', 'Jl. Suci No. 4, BANDUNG, 40375', '224000.00', 'Sampai', '2025-08-13 13:52:09.981', '2025-08-13 14:00:32.702', 'REG', '34000.00', 'jne', '2 day'),
-('aa8d9fe0-9a0f-4dd3-aaa1-c3b5cd780959', 'a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'coba', '082112098301', 'coba, BANDUNG, 213i19', '117000.00', 'Dikonfirmasi', '2025-08-15 13:48:27.722', '2025-08-15 13:49:32.622', 'REG', '17000.00', 'jne', '2 day'),
-('ba5cb854-dca1-45a1-a8a4-14cbdc635bfa', 'a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'Alfin Naufal Azhali', '921803801809381', 'lajdlsjajl, BANDUNG, 21387189', '107000.00', 'Dikonfirmasi', '2025-08-12 12:09:59.750', '2025-08-15 13:49:28.736', 'REG', '17000.00', 'jne', '2 day');
+('23f3d082-87ab-4fa7-b143-47f92241b628', '15172fbd-f5bb-4386-b36f-75568981d49b', 'Raihan', '08218298298090', 'Tega lega, BANDUNG, 40375', '117000.00', 'Sampai', '2025-08-29 11:23:51.119', '2025-08-29 11:24:47.309', 'REG', '17000.00', 'jne', '2 day'),
+('e4040772-2f12-4051-9489-22ffbd805ff5', 'a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'Alfin Naufal Azhali', '082128952805', 'bandung, BANDUNG, 40122', '117000.00', 'Sampai', '2025-08-29 10:09:38.606', '2025-08-29 10:30:18.716', 'REG', '17000.00', 'jne', '2 day');
 
 -- --------------------------------------------------------
 
@@ -87,11 +92,8 @@ CREATE TABLE `orderitem` (
 --
 
 INSERT INTO `orderitem` (`id`, `orderId`, `productId`, `quantity`, `price`) VALUES
-('1acf6d94-2a39-4349-ab76-1545389cbfaf', 'aa8d9fe0-9a0f-4dd3-aaa1-c3b5cd780959', '22649900-9a17-4592-9728-86910bd8eaa4', 1, '100000.00'),
-('448a9f05-2294-47ba-a769-f09d7c39529f', '51ed0182-2849-43df-8c25-3100db507a08', '22649900-9a17-4592-9728-86910bd8eaa4', 1, '100000.00'),
-('8f84870c-d7c1-40f7-a5b9-e69b7aca79ac', 'ba5cb854-dca1-45a1-a8a4-14cbdc635bfa', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 1, '90000.00'),
-('e702572c-1bd3-41b8-97ab-63e791ad0358', '966da78f-4e55-41ac-9f9a-ca1d864d457a', '22649900-9a17-4592-9728-86910bd8eaa4', 1, '100000.00'),
-('fa7b450c-26a7-4555-bb43-4b091d264dff', '966da78f-4e55-41ac-9f9a-ca1d864d457a', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 1, '90000.00');
+('54a10177-3e41-47f3-9dbe-10d4384291ec', '23f3d082-87ab-4fa7-b143-47f92241b628', '22649900-9a17-4592-9728-86910bd8eaa4', 1, '100000.00'),
+('e53a40b2-2e36-4d5c-98a4-062f748cbc3d', 'e4040772-2f12-4051-9489-22ffbd805ff5', '22649900-9a17-4592-9728-86910bd8eaa4', 1, '100000.00');
 
 -- --------------------------------------------------------
 
@@ -117,9 +119,9 @@ CREATE TABLE `product` (
 --
 
 INSERT INTO `product` (`id`, `name`, `description`, `price`, `stock`, `image_url`, `status`, `deleted_at`, `created_at`, `updated_at`) VALUES
-('22649900-9a17-4592-9728-86910bd8eaa4', 'Jonas', 'Baju oversize', '100000.00', 2, '/uploads/1753297020419.jpg', 'ACTIVE', NULL, '2025-07-23 18:57:00.432', '2025-08-15 13:49:32.589'),
+('22649900-9a17-4592-9728-86910bd8eaa4', 'Jonas', 'Baju oversize', '100000.00', 9, '/uploads/1753297020419.jpg', 'ACTIVE', NULL, '2025-07-23 18:57:00.432', '2025-08-29 11:24:32.157'),
 ('380301b0-a762-42ae-b96a-f15ba21a00f7', 'Jonas', 'lasjdkljajskd', '10000.00', 7, '/uploads/1753245030342.jpg', 'ARCHIVED', '2025-07-23 05:59:25.241', '2025-07-23 04:30:30.381', '2025-07-26 07:20:36.205'),
-('ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 'Screamble', 'ALjsdjasldj', '90000.00', 3, '/uploads/1753297043758.jpg', 'ACTIVE', NULL, '2025-07-23 18:57:23.765', '2025-08-15 13:49:28.730');
+('ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 'Screamble', 'ALjsdjasldj', '90000.00', 10, '/uploads/1753297043758.jpg', 'ACTIVE', NULL, '2025-07-23 18:57:23.765', '2025-08-29 11:22:19.213');
 
 -- --------------------------------------------------------
 
@@ -139,13 +141,37 @@ CREATE TABLE `productsize` (
 
 INSERT INTO `productsize` (`id`, `productId`, `size`) VALUES
 ('048e8a02-67da-44f0-95c9-b4a913722d08', '380301b0-a762-42ae-b96a-f15ba21a00f7', 'X'),
-('35e31aba-837d-499a-8648-61ba0c019b05', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 'L'),
-('55da950d-b434-4c11-be83-896c6fb96c89', '22649900-9a17-4592-9728-86910bd8eaa4', 'M'),
+('2d2a6898-229e-4c8f-a06a-61d661fb7a4c', '22649900-9a17-4592-9728-86910bd8eaa4', 'S'),
+('46b6c060-8ceb-4ad2-b899-f185794679cd', '22649900-9a17-4592-9728-86910bd8eaa4', 'L'),
 ('5c75e9b6-4cba-4739-9b1d-b6e29394fd3a', '380301b0-a762-42ae-b96a-f15ba21a00f7', 'M'),
 ('8c21c5ee-4a82-4ea9-a2b5-19f2c3e417c0', '380301b0-a762-42ae-b96a-f15ba21a00f7', 'XL'),
-('93f77ce0-c849-4448-b85b-f12abbb8f8c8', '22649900-9a17-4592-9728-86910bd8eaa4', 'L'),
+('9262e0e4-4078-44cd-a336-95e7922fb490', 'ba9c8e42-7078-4bf0-aaea-cad15c7eb23b', 'L'),
 ('a542b1e7-0f51-4d71-83e7-ab41d055176b', '380301b0-a762-42ae-b96a-f15ba21a00f7', 'L'),
-('bed1fc37-cc9e-43d0-8b9b-8f2e1c188446', '22649900-9a17-4592-9728-86910bd8eaa4', 'S');
+('f8c584c1-ed41-41c6-814a-9d46063d9784', '22649900-9a17-4592-9728-86910bd8eaa4', 'M');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `review`
+--
+
+CREATE TABLE `review` (
+  `id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `userId` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `orderId` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `rating` int NOT NULL,
+  `comment` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at` datetime(3) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `review`
+--
+
+INSERT INTO `review` (`id`, `userId`, `orderId`, `rating`, `comment`, `created_at`, `updated_at`) VALUES
+('2a1db208-8d4e-4596-96bd-26493af0478c', 'a4c8ee16-a1c1-4f47-9fe5-f1ab69d87ec6', 'e4040772-2f12-4051-9489-22ffbd805ff5', 5, 'bagus banget\n', '2025-08-29 10:45:15.085', '2025-08-29 10:45:15.085'),
+('ab5fb8ad-df99-4a19-a4b9-d040369fbaf1', '15172fbd-f5bb-4386-b36f-75568981d49b', '23f3d082-87ab-4fa7-b143-47f92241b628', 5, 'Kualitas bajunya bagus, kurirnya juga ramah', '2025-08-29 11:25:07.068', '2025-08-29 11:25:07.068');
 
 -- --------------------------------------------------------
 
@@ -171,10 +197,8 @@ CREATE TABLE `transactions` (
 --
 
 INSERT INTO `transactions` (`id`, `orderId`, `amount`, `paymentType`, `transactionStatus`, `transactionId`, `fraudStatus`, `paymentResponse`, `createdAt`, `updatedAt`) VALUES
-('06ac5ef8-a05c-4afa-93b1-5d79df99dda5', '966da78f-4e55-41ac-9f9a-ca1d864d457a', 224000, 'bank_transfer', 'settlement', 'd1e8a79c-c171-410b-bbbc-5d9ace9df1e5', 'accept', '{\"status_code\":\"200\",\"transaction_id\":\"d1e8a79c-c171-410b-bbbc-5d9ace9df1e5\",\"gross_amount\":\"224000.00\",\"currency\":\"IDR\",\"order_id\":\"966da78f-4e55-41ac-9f9a-ca1d864d457a\",\"payment_type\":\"bank_transfer\",\"signature_key\":\"557ce22c7a1a3ac89b640aa7ebfa661129e63c22b96a98a5a641915d55435b172cd7ee6e63b3da97e65426113db8d52f4e19b12bc2f3f397f370dd302359a296\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\",\"status_message\":\"Success, transaction is found\",\"merchant_id\":\"G050846848\",\"va_numbers\":[{\"bank\":\"bca\",\"va_number\":\"50846848988809769032061\"}],\"payment_amounts\":[],\"transaction_time\":\"2025-08-13 20:53:01\",\"settlement_time\":\"2025-08-13 20:53:56\",\"expiry_time\":\"2025-08-14 20:53:01\"}', '2025-08-13 13:59:11.917', '2025-08-13 13:59:27.471'),
-('209ca4d6-c3f9-48c6-a70d-14229e5a2fb5', 'aa8d9fe0-9a0f-4dd3-aaa1-c3b5cd780959', 117000, 'bank_transfer', 'settlement', 'c653ed70-71f6-4cd5-ac7f-3c9187611070', 'accept', '{\"status_code\":\"200\",\"transaction_id\":\"c653ed70-71f6-4cd5-ac7f-3c9187611070\",\"gross_amount\":\"117000.00\",\"currency\":\"IDR\",\"order_id\":\"aa8d9fe0-9a0f-4dd3-aaa1-c3b5cd780959\",\"payment_type\":\"bank_transfer\",\"signature_key\":\"d5c7adac4fd952c32f8bdaf2183ce40a36a38060b7a0b3bd65a6c437f503876a2e026cf7354eb9b541623c301edd58ddaa0c5b5da272afed46898e6f65fbda2a\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\",\"status_message\":\"Success, transaction is found\",\"merchant_id\":\"G050846848\",\"va_numbers\":[{\"bank\":\"bca\",\"va_number\":\"50846848717603838543045\"}],\"payment_amounts\":[],\"transaction_time\":\"2025-08-15 20:48:29\",\"settlement_time\":\"2025-08-15 20:49:02\",\"expiry_time\":\"2025-08-16 20:48:29\"}', '2025-08-15 13:48:47.246', '2025-08-15 13:49:03.445'),
-('8a1eedf9-afd0-4ccf-82ce-e9f814b35394', 'ba5cb854-dca1-45a1-a8a4-14cbdc635bfa', 107000, 'bank_transfer', 'settlement', '7e3e5447-3e44-49a3-9b40-69764af6066d', 'accept', '{\"status_code\":\"200\",\"transaction_id\":\"7e3e5447-3e44-49a3-9b40-69764af6066d\",\"gross_amount\":\"107000.00\",\"currency\":\"IDR\",\"order_id\":\"ba5cb854-dca1-45a1-a8a4-14cbdc635bfa\",\"payment_type\":\"bank_transfer\",\"signature_key\":\"429d0a5887f5fd77bb9d285ba025448cf142552726a75657081184cb7fe9984995a9d94d4eb0831edd8c3f2480202ae9daffde1f7c806313de462aa93d26cdf8\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\",\"status_message\":\"Success, transaction is found\",\"merchant_id\":\"G050846848\",\"va_numbers\":[{\"bank\":\"bca\",\"va_number\":\"50846848513627963549483\"}],\"payment_amounts\":[],\"transaction_time\":\"2025-08-12 19:10:01\",\"settlement_time\":\"2025-08-12 19:10:30\",\"expiry_time\":\"2025-08-13 19:10:01\"}', '2025-08-12 12:10:16.835', '2025-08-12 12:12:00.285'),
-('98801947-2915-4bd1-b719-bebad8f18df9', '51ed0182-2849-43df-8c25-3100db507a08', 117000, 'bank_transfer', 'settlement', '852a3cc8-246f-424c-b784-03d4c6882fc8', 'accept', '{\"status_code\":\"200\",\"transaction_id\":\"852a3cc8-246f-424c-b784-03d4c6882fc8\",\"gross_amount\":\"117000.00\",\"currency\":\"IDR\",\"order_id\":\"51ed0182-2849-43df-8c25-3100db507a08\",\"payment_type\":\"bank_transfer\",\"signature_key\":\"98f6ccb9f018ce857142f75126069b1d5bdc0a190d609e3653418d29c66feeb9d935c8b1493a32deab3720d6896f08a07f37c7cda4d326a7860d47296420f1df\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\",\"status_message\":\"Success, transaction is found\",\"merchant_id\":\"G050846848\",\"va_numbers\":[{\"bank\":\"bca\",\"va_number\":\"50846848778442156380442\"}],\"payment_amounts\":[],\"transaction_time\":\"2025-08-14 19:20:20\",\"settlement_time\":\"2025-08-14 19:20:41\",\"expiry_time\":\"2025-08-15 19:20:20\"}', '2025-08-14 12:20:35.164', '2025-08-14 12:38:15.187');
+('4ff3d159-02fd-4891-af37-76935461e8ad', 'e4040772-2f12-4051-9489-22ffbd805ff5', 117000, 'bank_transfer', 'settlement', '4a10e999-7d58-4de5-ac8a-4530cea754e1', 'accept', '{\"status_code\":\"200\",\"transaction_id\":\"4a10e999-7d58-4de5-ac8a-4530cea754e1\",\"gross_amount\":\"117000.00\",\"currency\":\"IDR\",\"order_id\":\"e4040772-2f12-4051-9489-22ffbd805ff5\",\"payment_type\":\"bank_transfer\",\"signature_key\":\"8a81ec3bc69a37d36049db9ed5611fa018f2167b8474343cd2933043527c1763c2269f1fa000fcb4c9f82db64161b8d71f77a82af7de9371e6796e7bc5fcc0d4\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\",\"status_message\":\"Success, transaction is found\",\"merchant_id\":\"G050846848\",\"va_numbers\":[{\"bank\":\"bca\",\"va_number\":\"50846848972289713384188\"}],\"payment_amounts\":[],\"transaction_time\":\"2025-08-29 17:09:39\",\"settlement_time\":\"2025-08-29 17:09:50\",\"expiry_time\":\"2025-08-30 17:09:39\"}', '2025-08-29 10:10:04.321', '2025-08-29 10:30:30.876'),
+('b4d5b8a3-48a3-4628-89e8-35a2dcee8c1a', '23f3d082-87ab-4fa7-b143-47f92241b628', 117000, 'bank_transfer', 'settlement', '0a9c2a7e-6b67-4ec1-8cc3-eb039ef67c32', 'accept', '{\"status_code\":\"200\",\"transaction_id\":\"0a9c2a7e-6b67-4ec1-8cc3-eb039ef67c32\",\"gross_amount\":\"117000.00\",\"currency\":\"IDR\",\"order_id\":\"23f3d082-87ab-4fa7-b143-47f92241b628\",\"payment_type\":\"bank_transfer\",\"signature_key\":\"d7cd2a2189acc042b89df5991d50e9a208d5baa03356c45a60f2eb5e0ca8f0f93e17951b952422f56aa16fdbd28725735a5d3d538a89d40a1a69b7146d61bd21\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\",\"status_message\":\"Success, transaction is found\",\"merchant_id\":\"G050846848\",\"va_numbers\":[{\"bank\":\"bca\",\"va_number\":\"50846848807161129779801\"}],\"payment_amounts\":[],\"transaction_time\":\"2025-08-29 18:23:52\",\"settlement_time\":\"2025-08-29 18:24:02\",\"expiry_time\":\"2025-08-30 18:23:52\"}', '2025-08-29 11:24:13.757', '2025-08-29 11:24:13.757');
 
 -- --------------------------------------------------------
 
@@ -270,6 +294,15 @@ ALTER TABLE `productsize`
   ADD KEY `ProductSize_productId_fkey` (`productId`);
 
 --
+-- Indexes for table `review`
+--
+ALTER TABLE `review`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `review_userId_orderId_key` (`userId`,`orderId`),
+  ADD KEY `Review_userId_fkey` (`userId`),
+  ADD KEY `Review_orderId_fkey` (`orderId`);
+
+--
 -- Indexes for table `transactions`
 --
 ALTER TABLE `transactions`
@@ -318,6 +351,13 @@ ALTER TABLE `orderitem`
 --
 ALTER TABLE `productsize`
   ADD CONSTRAINT `ProductSize_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `product` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `review`
+--
+ALTER TABLE `review`
+  ADD CONSTRAINT `review_orderId_fkey` FOREIGN KEY (`orderId`) REFERENCES `order` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `review_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `transactions`

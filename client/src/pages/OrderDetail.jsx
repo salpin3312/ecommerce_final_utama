@@ -269,9 +269,32 @@ function OrderDetail() {
       );
    }
 
-   // Hitung subtotal produk
+   // Hitung subtotal produk dengan diskon - pendekatan yang lebih sederhana
    const subtotal =
-      (order.orderItems || []).reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0) || 0;
+      (order.orderItems || []).reduce((sum, item) => {
+         // Ambil harga dasar
+         const basePrice = Number(item.price) || 0;
+         const quantity = Number(item.quantity) || 1;
+
+         // Cek apakah ada diskon
+         let finalPrice = basePrice;
+
+         // Jika ada discountedPrice langsung, gunakan itu
+         if (item.product?.discountedPrice) {
+            finalPrice = Number(item.product.discountedPrice);
+         } else if (item.discountedPrice) {
+            finalPrice = Number(item.discountedPrice);
+         }
+         // Jika ada discount percentage, hitung manual
+         else if (item.product?.discountPercentage > 0) {
+            const originalPrice = Number(item.product.price) || basePrice;
+            finalPrice = originalPrice * (1 - Number(item.product.discountPercentage) / 100);
+         } else if (item.discountPercentage > 0) {
+            finalPrice = basePrice * (1 - Number(item.discountPercentage) / 100);
+         }
+
+         return sum + finalPrice * quantity;
+      }, 0) || 0;
 
    return (
       <div className="container mx-auto px-4 py-8">
@@ -368,12 +391,98 @@ function OrderDetail() {
                                     </div>
                                     <div>
                                        <div className="font-bold">{item.product?.name || "-"}</div>
+                                       {(() => {
+                                          // Cek apakah ada diskon
+                                          const hasDiscount =
+                                             item.product?.discountedPrice ||
+                                             item.discountedPrice ||
+                                             item.product?.discountPercentage > 0 ||
+                                             item.discountPercentage > 0;
+
+                                          if (hasDiscount) {
+                                             const discountPercent =
+                                                item.product?.discountPercentage || item.discountPercentage || 0;
+                                             return (
+                                                <div className="text-xs text-green-600 font-medium">
+                                                   🔥 Diskon {discountPercent}%
+                                                </div>
+                                             );
+                                          }
+                                          return null;
+                                       })()}
                                     </div>
                                  </div>
                               </td>
-                              <td>{formatCurrency(item.price)}</td>
+                              <td>
+                                 {(() => {
+                                    // Hitung harga final untuk item ini
+                                    const basePrice = Number(item.price) || 0;
+
+                                    let finalPrice = basePrice;
+
+                                    // Jika ada discountedPrice langsung, gunakan itu
+                                    if (item.product?.discountedPrice) {
+                                       finalPrice = Number(item.product.discountedPrice);
+                                    } else if (item.discountedPrice) {
+                                       finalPrice = Number(item.discountedPrice);
+                                    }
+                                    // Jika ada discount percentage, hitung manual
+                                    else if (item.product?.discountPercentage > 0) {
+                                       const originalPrice = Number(item.product.price) || basePrice;
+                                       finalPrice = originalPrice * (1 - Number(item.product.discountPercentage) / 100);
+                                    } else if (item.discountPercentage > 0) {
+                                       finalPrice = basePrice * (1 - Number(item.discountPercentage) / 100);
+                                    }
+
+                                    // Cek apakah ada diskon
+                                    const hasDiscount =
+                                       item.product?.discountedPrice ||
+                                       item.discountedPrice ||
+                                       item.product?.discountPercentage > 0 ||
+                                       item.discountPercentage > 0;
+
+                                    if (hasDiscount) {
+                                       return (
+                                          <div>
+                                             <div className="text-green-600 font-medium">
+                                                {formatCurrency(finalPrice)}
+                                             </div>
+                                             <div className="text-xs text-gray-500 line-through">
+                                                {formatCurrency(basePrice)}
+                                             </div>
+                                          </div>
+                                       );
+                                    } else {
+                                       return formatCurrency(finalPrice);
+                                    }
+                                 })()}
+                              </td>
                               <td>{item.quantity}</td>
-                              <td>{formatCurrency(Number(item.price) * Number(item.quantity))}</td>
+                              <td>
+                                 {(() => {
+                                    // Hitung harga final untuk item ini
+                                    const basePrice = Number(item.price) || 0;
+                                    const quantity = Number(item.quantity) || 1;
+
+                                    let finalPrice = basePrice;
+
+                                    // Jika ada discountedPrice langsung, gunakan itu
+                                    if (item.product?.discountedPrice) {
+                                       finalPrice = Number(item.product.discountedPrice);
+                                    } else if (item.discountedPrice) {
+                                       finalPrice = Number(item.discountedPrice);
+                                    }
+                                    // Jika ada discount percentage, hitung manual
+                                    else if (item.product?.discountPercentage > 0) {
+                                       const originalPrice = Number(item.product.price) || basePrice;
+                                       finalPrice = originalPrice * (1 - Number(item.product.discountPercentage) / 100);
+                                    } else if (item.discountPercentage > 0) {
+                                       finalPrice = basePrice * (1 - Number(item.discountPercentage) / 100);
+                                    }
+
+                                    return formatCurrency(finalPrice * quantity);
+                                 })()}
+                              </td>
                            </tr>
                         ))}
                      </tbody>
@@ -424,6 +533,29 @@ function OrderDetail() {
                <div className="card-body">
                   <h3 className="text-xl font-bold mb-4">Ringkasan Pembayaran</h3>
                   <div className="space-y-3">
+                     {/* Discount Information */}
+                     {(() => {
+                        // Hitung total diskon
+                        const originalSubtotal = (order.orderItems || []).reduce(
+                           (sum, item) => sum + Number(item.price) * Number(item.quantity),
+                           0
+                        );
+                        const discountAmount = originalSubtotal - subtotal;
+
+                        if (discountAmount > 0) {
+                           return (
+                              <div className="p-2 bg-green-50 rounded border border-green-200">
+                                 <div className="flex justify-between text-sm">
+                                    <span className="text-green-700">Total Diskon:</span>
+                                    <span className="text-green-700 font-medium">
+                                       -{formatCurrency(discountAmount)}
+                                    </span>
+                                 </div>
+                              </div>
+                           );
+                        }
+                        return null;
+                     })()}
                      <div className="flex justify-between">
                         <span>Subtotal Produk:</span>
                         <span>{formatCurrency(subtotal)}</span>
@@ -435,7 +567,7 @@ function OrderDetail() {
                      <div className="divider my-1"></div>
                      <div className="flex justify-between font-bold text-lg">
                         <span>Total:</span>
-                        <span>{formatCurrency(order.totalPrice)}</span>
+                        <span>{formatCurrency(subtotal + Number(order.shippingCost || 0))}</span>
                      </div>
                      <div className="flex justify-between items-center">
                         <span>Status Pembayaran:</span>

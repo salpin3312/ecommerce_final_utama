@@ -2,31 +2,69 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Truck, Phone, RefreshCcw, ShoppingCart, Star, Users, Award, Heart, Zap, Shield } from "lucide-react";
-import ProductCard from "../components/Product-Card";
-import { getAllProducts } from "../service/api/productService";
+import {
+   Truck,
+   Phone,
+   RefreshCcw,
+   ShoppingCart,
+   Star,
+   Users,
+   Award,
+   Heart,
+   Zap,
+   Shield,
+   ChevronLeft,
+   ChevronRight,
+} from "lucide-react";
+import { SmallProductCard } from "../components/Product-Card";
+import { getFeaturedProducts } from "../service/api/productService";
 import logoScreamble from "../assets/logoscreamble.png";
 
 function Home() {
    const [products, setProducts] = useState([]);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState(null);
+   const [selectedPeriod, setSelectedPeriod] = useState("month");
+   const [currentPage, setCurrentPage] = useState(1);
+   const [productsPerPage] = useState(12); // Jumlah produk per halaman
 
    useEffect(() => {
-      const fetchProducts = async () => {
+      const fetchFeaturedProducts = async () => {
          try {
-            const data = await getAllProducts();
+            setLoading(true);
+            const data = await getFeaturedProducts(selectedPeriod);
             console.log(data);
-            setProducts(data);
+            setProducts(data.products || []);
+            setCurrentPage(1); // Reset ke halaman pertama saat periode berubah
          } catch (error) {
-            setError("Gagal mengambil produk");
+            setError("Gagal mengambil produk unggulan");
          } finally {
             setLoading(false);
          }
       };
 
-      fetchProducts();
-   }, []);
+      fetchFeaturedProducts();
+   }, [selectedPeriod]);
+
+   // Hitung produk untuk halaman saat ini
+   const indexOfLastProduct = currentPage * productsPerPage;
+   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+   const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+   const totalPages = Math.ceil(products.length / productsPerPage);
+
+   // Fungsi untuk halaman berikutnya
+   const nextPage = () => {
+      if (currentPage < totalPages) {
+         setCurrentPage(currentPage + 1);
+      }
+   };
+
+   // Fungsi untuk halaman sebelumnya
+   const prevPage = () => {
+      if (currentPage > 1) {
+         setCurrentPage(currentPage - 1);
+      }
+   };
 
    return (
       <div className="min-h-screen bg-gradient-to-r from-zinc-200 to-orange-100 pb-10">
@@ -228,16 +266,50 @@ function Home() {
          </div>
 
          {/* Bagian Produk Unggulan */}
-         <div className="py-16 bg-gradient-to-r from-zinc-200 to-orange-100">
+         <div className="py-16 bg-base-200">
             <div className="container mx-auto px-4">
                <div className="text-center mb-12">
                   <h2 className="text-4xl font-bold text-gray-900 mb-4">Produk Unggulan</h2>
-                  <p className="text-xl text-gray-600">Koleksi terpopuler yang paling disukai pelanggan</p>
+                  <p className="text-xl text-gray-600">Koleksi terpopuler berdasarkan penjualan</p>
+
+                  {/* Filter Periode */}
+                  <div className="flex justify-center mt-6 mb-4">
+                     <div className="join">
+                        <button
+                           className={`btn join-item ${selectedPeriod === "today" ? "btn-primary" : "btn-outline"}`}
+                           onClick={() => setSelectedPeriod("today")}>
+                           Hari Ini
+                        </button>
+                        <button
+                           className={`btn join-item ${selectedPeriod === "week" ? "btn-primary" : "btn-outline"}`}
+                           onClick={() => setSelectedPeriod("week")}>
+                           Minggu Ini
+                        </button>
+                        <button
+                           className={`btn join-item ${selectedPeriod === "month" ? "btn-primary" : "btn-outline"}`}
+                           onClick={() => setSelectedPeriod("month")}>
+                           Bulan Ini
+                        </button>
+                        <button
+                           className={`btn join-item ${selectedPeriod === "year" ? "btn-primary" : "btn-outline"}`}
+                           onClick={() => setSelectedPeriod("year")}>
+                           Tahun Ini
+                        </button>
+                     </div>
+                  </div>
+
+                  {/* Info Periode */}
+                  <div className="text-sm text-gray-600 mb-4">
+                     {selectedPeriod === "today" && "Menampilkan produk terlaris hari ini"}
+                     {selectedPeriod === "week" && "Menampilkan produk terlaris minggu ini"}
+                     {selectedPeriod === "month" && "Menampilkan produk terlaris bulan ini"}
+                     {selectedPeriod === "year" && "Menampilkan produk terlaris tahun ini"}
+                  </div>
                </div>
                {loading ? (
                   <div className="text-center">
                      <div className="loading loading-spinner loading-lg text-orange-500"></div>
-                     <p className="mt-4 text-gray-600">Memuat produk terbaik untuk Anda...</p>
+                     <p className="mt-4 text-gray-600">Memuat produk unggulan untuk Anda...</p>
                   </div>
                ) : error ? (
                   <div className="text-center">
@@ -246,13 +318,68 @@ function Home() {
                         Coba Lagi
                      </button>
                   </div>
+               ) : products.length === 0 ? (
+                  <div className="text-center">
+                     <div className="bg-white rounded-lg p-8 shadow-lg">
+                        <div className="text-6xl mb-4">📦</div>
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">Belum Ada Produk Unggulan</h3>
+                        <p className="text-gray-600 mb-4">
+                           Belum ada produk yang terjual dalam periode{" "}
+                           {selectedPeriod === "today"
+                              ? "hari ini"
+                              : selectedPeriod === "week"
+                              ? "minggu ini"
+                              : selectedPeriod === "month"
+                              ? "bulan ini"
+                              : "tahun ini"}
+                        </p>
+                        <Link to="/shop" className="btn btn-primary">
+                           Jelajahi Semua Produk
+                        </Link>
+                     </div>
+                  </div>
                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                     {products.map((product) => (
-                        <div key={product.id} className="transform hover:scale-105 transition-transform duration-300">
-                           <ProductCard product={product} />
+                  <div>
+                     {/* Container dengan scroll horizontal */}
+                     <div className="overflow-x-auto">
+                        <div className="flex gap-4 pb-4" style={{ minWidth: "max-content" }}>
+                           {currentProducts.map((product) => (
+                              <div
+                                 key={product.id}
+                                 className="transform hover:scale-105 transition-transform duration-300"
+                                 style={{ minWidth: "200px", maxWidth: "200px" }}>
+                                 <SmallProductCard product={product} />
+                              </div>
+                           ))}
                         </div>
-                     ))}
+                     </div>
+
+                     {/* Pagination Controls */}
+                     {totalPages > 1 && (
+                        <div className="flex justify-center items-center gap-4 mt-8">
+                           <button
+                              onClick={prevPage}
+                              disabled={currentPage === 1}
+                              className="btn btn-outline btn-sm flex items-center gap-2">
+                              <ChevronLeft size={16} />
+                              Sebelumnya
+                           </button>
+
+                           <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">
+                                 Halaman {currentPage} dari {totalPages}
+                              </span>
+                           </div>
+
+                           <button
+                              onClick={nextPage}
+                              disabled={currentPage === totalPages}
+                              className="btn btn-outline btn-sm flex items-center gap-2">
+                              Selanjutnya
+                              <ChevronRight size={16} />
+                           </button>
+                        </div>
+                     )}
                   </div>
                )}
             </div>

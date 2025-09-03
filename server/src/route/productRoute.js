@@ -7,6 +7,7 @@ import {
    deleteProduct,
    searchProducts,
    updateProductStatus,
+   getFeaturedProducts,
 } from "../controller/productController.js";
 import upload from "../middleware/multerMiddleware.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
@@ -61,6 +62,25 @@ routerProduct.get("/products", getAllProducts);
  *         description: Search results
  */
 routerProduct.get("/products/search", searchProducts);
+
+/**
+ * @swagger
+ * /products/featured:
+ *   get:
+ *     summary: Get featured products based on sales period
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [today, week, month, year]
+ *         description: Time period for featured products
+ *     responses:
+ *       200:
+ *         description: Featured products list
+ */
+routerProduct.get("/products/featured", getFeaturedProducts);
 
 /**
  * @swagger
